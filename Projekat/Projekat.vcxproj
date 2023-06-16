@@ -128,13 +128,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="E:\FAKS\grafika\Potrebni fajlovi\Glut.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="E:\FAKS\grafika\Potrebni fajlovi\glut32.lib" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Glut.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="glut32.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
