@@ -19,8 +19,9 @@ static float ballX = Xmax / 2;
 static float ballY = Ymax / 2;
 const float ballRadius = 6;
 
-const float hoopLeftRimY = courtupY - 48;
+const float hoopRimY = courtupY - 48;
 const float hoopLeftRimX = Xmin + 68;
+const float hoopRightRimX = Xmax - 68;
 const float hoopRimRadius = 12;
 
 static time_t startTime;
@@ -84,10 +85,10 @@ void drawStaticElements() {
     // Draw the center line circle
     glBegin(GL_LINE_LOOP); // NE KONTAM
     for (int i = 0; i < 1080; ++i) {
-        float theta = 2.0f * 3.1415926f * float(i) / float(360);//get the current angle
+        float theta = 2.0f * 3.1415926f * float(i) / float(360);
 
-        float x = 35 * cosf(theta);//calculate the x component
-        float y = 35 * sinf(theta);//calculate the y component
+        float x = 35 * cosf(theta);
+        float y = 35 * sinf(theta);
         glVertex2f(x + Xmax / 2, y + (courtdownY + courtupY) / 2);
     }
     glEnd();
@@ -126,7 +127,7 @@ void drawStaticElements() {
 
         float x = hoopRimRadius * cosf(theta);//calculate the x component
         float y = hoopRimRadius * sinf(theta);//calculate the y component
-        glVertex2f(x + hoopLeftRimX, y + hoopLeftRimY);
+        glVertex2f(x + hoopLeftRimX, y + hoopRimY);
     }
     glEnd();
 
@@ -166,7 +167,7 @@ void drawStaticElements() {
 
         float x = 12 * cosf(theta);//calculate the x component
         float y = 12 * sinf(theta);//calculate the y component
-        glVertex2f(x + Xmax - 68, y + courtupY - 48);
+        glVertex2f(x + hoopRightRimX, y + hoopRimY);
     }
   
     glEnd();
@@ -216,7 +217,7 @@ void drawScore() {
     }
 }
 
-void calculateAhdDrawTime() {
+void calculateAndDrawTime() {
     time_t currentTime = time(NULL);
     double elapsedSeconds = difftime(currentTime, startTime);
     int remainingMinutes = countdownMinutes - 1 - static_cast<int>(elapsedSeconds) / 60;
@@ -258,7 +259,7 @@ void mySpecialKeyFunc(int key, int x, int y)
 void drawScene() {
     glClearColor(0.4609375f, 0.4609375f, 0.46484375f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    calculateAhdDrawTime();
+    calculateAndDrawTime();
     drawScore();
     drawBall(ballX, ballY);
     drawStaticElements();
@@ -316,12 +317,21 @@ void timer(int value) {
     ballY -=2.0f;
 
     // Check if ball passes through the hoop
-    if (ballY - ballRadius < hoopLeftRimY + hoopRimRadius && ballY + ballRadius > hoopLeftRimY - hoopRimRadius) {
+    if (ballY - ballRadius < hoopRimY + hoopRimRadius && ballY + ballRadius > hoopRimY - hoopRimRadius) {
         float distance = abs(static_cast<long> (ballX - hoopLeftRimX));
         if (distance < hoopRimRadius) {
             // Ball passed through the hoop
             scoreP1 += 1;
             printf("Ball passed through the hoop! %d\n", scoreP1);
+        }
+    }
+
+    if (ballY - ballRadius < hoopRimY + hoopRimRadius && ballY + ballRadius > hoopRimY - hoopRimRadius) {
+        float distance = abs(static_cast<long> (ballX - hoopRightRimX));
+        if (distance < hoopRimRadius) {
+            // Ball passed through the hoop
+            scoreP2 += 1;
+            printf("Ball passed through the hoop! %d\n", scoreP2);
         }
     }
 
