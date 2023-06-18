@@ -1,3 +1,4 @@
+#define STB_IMAGE_IMPLEMENTATION
 #include <math.h>		
 #include <stdio.h>
 #include <stdlib.h>	
@@ -5,6 +6,7 @@
 #include <ctime>
 #include <string>
 #include "Glut.h"
+#include "stb_image.h"
 
 const double Xmin = 0.0, Xmax = 768.0;
 const double Ymin = 0.0, Ymax = 672.0;
@@ -26,6 +28,8 @@ const float hoopRimRadius = 12;
 
 static time_t startTime;
 static int countdownMinutes = 10;
+
+GLint playerTexture;
 
 enum Color {
     RED,
@@ -49,6 +53,32 @@ const GLfloat colors[][3] = {
     {0.53f, 0.39f, 0.18f}                   // HOOP_BACKBOARD
 };
 
+GLuint loadTexture(const char* filename) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, channels;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* image = stbi_load(filename, &width, &height, &channels, 0);
+
+    if (image) {
+        GLenum format = (channels == 4) ? GL_RGBA : GL_RGB;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, image);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(image);
+    }
+    else {
+        printf("Failed to load texture: %s\n", filename);
+        stbi_image_free(image);
+        return 0;
+    }
+
+    return textureID;
+}
 void drawStaticElements() {
     // Draw the court rectangle
     glColor3fv(colors[BLACK]);
@@ -278,6 +308,8 @@ void initRendering()
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0.1f);
 }
 
 void resizeWindow(int w, int h)
@@ -345,7 +377,10 @@ int main(int argc, char** argv) {
 
     glutInitWindowPosition(10, 60);
     glutInitWindowSize(768, 672);
-
+    playerTexture = loadTexture("C:/Users/Mladen/Downloads/scuba2.png");
+    if (playerTexture == 0) {
+        return 1;
+    }
     //preimenovati u Kolokvijum_ime_prezime (npr. Kolokvijum_Tijana_Sustersic)
     glutCreateWindow("Kolokvijum_ime_prezime");
 
