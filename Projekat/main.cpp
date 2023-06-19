@@ -409,12 +409,13 @@ int main(int argc, char** argv) {
 
     glutInitWindowPosition(10, 60);
     glutInitWindowSize(Xmax, Ymax);
+
+    glutCreateWindow("Kolokvijum_ime_prezime");
     playerTexture = loadTexture("C:/Users/datcha/source/repos/failaip12/Projekat-Grafika/Projekat/pics/shark2.png");
     if (playerTexture == 0) {
         return 1;
     }
     //preimenovati u Kolokvijum_ime_prezime (npr. Kolokvijum_Tijana_Sustersic)
-    glutCreateWindow("Kolokvijum_ime_prezime");
 
     initRendering();
 
