@@ -137,9 +137,6 @@
   <ItemGroup>
     <Library Include="glut32.lib" />
   </ItemGroup>
-  <ItemGroup>
-    <Image Include="pics\Mon projet.png" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

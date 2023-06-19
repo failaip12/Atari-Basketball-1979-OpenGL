@@ -32,9 +32,4 @@
       <Filter>Resource Files</Filter>
     </Library>
   </ItemGroup>
-  <ItemGroup>
-    <Image Include="pics\Mon projet.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-  </ItemGroup>
 </Project>
