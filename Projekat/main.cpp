@@ -29,7 +29,8 @@ const float hoopRimRadius = 12;
 static time_t startTime;
 static int countdownMinutes = 10;
 
-GLint playerTexture;
+GLuint playerTexture;
+int a;
 
 enum Color {
     RED,
@@ -57,6 +58,7 @@ GLuint loadTexture(const char* filename) {
     GLuint textureID;
     glGenTextures(1, &textureID);
 
+
     int width, height, channels;
     stbi_set_flip_vertically_on_load(true);
     unsigned char* image = stbi_load(filename, &width, &height, &channels, 0);
@@ -66,6 +68,8 @@ GLuint loadTexture(const char* filename) {
 
         glBindTexture(GL_TEXTURE_2D, textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, image);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -125,12 +129,17 @@ void drawStaticElements() {
 
     //HOOP LEFT
     //Hoop pole 1
+
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, playerTexture);
     glBegin(GL_QUADS);
     glVertex2f(Xmin + 25, (courtdownY + courtupY) / 2);
     glVertex2f(Xmin + 25, courtupY - 40);
     glVertex2f(Xmin + 35, courtupY - 40);
     glVertex2f(Xmin + 35, (courtdownY + courtupY) / 2);
     glEnd();
+    glDisable(GL_TEXTURE_2D);
     //Hoop pole 2
     glBegin(GL_QUADS);
     glVertex2f(Xmin + 25, courtupY - 50);
@@ -199,23 +208,34 @@ void drawStaticElements() {
         float y = 12 * sinf(theta);//calculate the y component
         glVertex2f(x + hoopRightRimX, y + hoopRimY);
     }
-  
+
     glEnd();
 }
 
 void drawBall(float x_offset, float y_offset) {
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, playerTexture);
+    glPushMatrix();
     glColor3fv(colors[ORANGE]);
     glBegin(GL_POLYGON);
-    for (int i = 0; i < 1080; ++i) {
-        float theta = 2.0f * 3.1415926f * float(i) / float(360);//get the current angle
-        float x = ballRadius * cosf(theta);//calculate the x component
-        float y = ballRadius * sinf(theta);//calculate the y component
+    for (int i = 0; i < 360; ++i) {
+        float theta = 2.0f * 3.1415926f * float(i) / float(360); // Get the current angle
+        float x = ballRadius * cosf(theta); // Calculate the x component
+        float y = ballRadius * sinf(theta); // Calculate the y component
+
+        float s = (x + ballRadius) / (2 * ballRadius); // Calculate the texture S coordinate
+        float t = (y + ballRadius) / (2 * ballRadius); // Calculate the texture T coordinate
+
+        glTexCoord2f(s, t);
         glVertex2f(x + x_offset, y + y_offset);
     }
     glEnd();
+    glPopMatrix();
+    glDisable(GL_TEXTURE_2D);
 }
 
 void drawScore() {
+    glColor3fv(colors[WHITE]);
     //PLAYER 1 SCORE
     glRasterPos2f(Xmax / 2 - 150, Ymax - 75);
     std::string score = "SCORE";
@@ -248,6 +268,7 @@ void drawScore() {
 }
 
 void calculateAndDrawTime() {
+    glColor3fv(colors[WHITE]);
     time_t currentTime = time(NULL);
     double elapsedSeconds = difftime(currentTime, startTime);
     int remainingMinutes = countdownMinutes - 1 - static_cast<int>(elapsedSeconds) / 60;
@@ -288,20 +309,17 @@ void mySpecialKeyFunc(int key, int x, int y)
 
 void drawScene() {
     glClearColor(0.4609375f, 0.4609375f, 0.46484375f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
     calculateAndDrawTime();
     drawScore();
-    drawBall(ballX, ballY);
     drawStaticElements();
-    glFlush();
+    drawBall(ballX, ballY);
     glutSwapBuffers();
     glutPostRedisplay();
 }
 
 void initRendering()
 {
-    glEnable(GL_DEPTH_TEST);
-    glShadeModel(GL_FLAT);
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_POINT_SMOOTH);
@@ -340,31 +358,45 @@ void resizeWindow(int w, int h)
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(windowXmin, windowXmax, windowYmin, windowYmax, -1, 1);
+    gluOrtho2D(windowXmin, windowXmax, windowYmin, windowYmax);
 
 }
+// Declare a flag to track if the ball has passed through the hoop
+bool ballPassedThrough = false;
+
 void timer(int value) {
 
     // Update ball position
-    ballY -=2.0f;
+    ballY -= 0.50f;
 
-    // Check if ball passes through the hoop
-    if (ballY - ballRadius < hoopRimY + hoopRimRadius && ballY + ballRadius > hoopRimY - hoopRimRadius) {
-        float distance = abs(static_cast<long> (ballX - hoopLeftRimX));
-        if (distance < hoopRimRadius) {
+    // Check if the ball is within the range of the hoop
+    bool ballInRange = (ballY - ballRadius < hoopRimY + hoopRimRadius) && (ballY + ballRadius > hoopRimY - hoopRimRadius);
+
+    if (ballInRange) {
+        // Check if the ball passes through the left rim of the hoop
+        float distanceToLeftRim = abs(ballX - hoopLeftRimX);
+        if (distanceToLeftRim < hoopRimRadius && !ballPassedThrough) {
             // Ball passed through the hoop
             scoreP1 += 1;
-            printf("Ball passed through the hoop! %d\n", scoreP1);
+
+            // Set the flag to prevent multiple score increments
+            ballPassedThrough = true;
+        }
+
+        // Check if the ball passes through the right rim of the hoop
+        float distanceToRightRim = abs(ballX - hoopRightRimX);
+        if (distanceToRightRim < hoopRimRadius && !ballPassedThrough) {
+            // Ball passed through the hoop
+            scoreP2 += 1;
+
+            // Set the flag to prevent multiple score increments
+            ballPassedThrough = true;
         }
     }
 
-    if (ballY - ballRadius < hoopRimY + hoopRimRadius && ballY + ballRadius > hoopRimY - hoopRimRadius) {
-        float distance = abs(static_cast<long> (ballX - hoopRightRimX));
-        if (distance < hoopRimRadius) {
-            // Ball passed through the hoop
-            scoreP2 += 1;
-            printf("Ball passed through the hoop! %d\n", scoreP2);
-        }
+    // Reset the flag if the ball is not within the range of the hoop
+    if (!ballInRange) {
+        ballPassedThrough = false;
     }
 
     glutPostRedisplay();
@@ -376,8 +408,8 @@ int main(int argc, char** argv) {
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
     glutInitWindowPosition(10, 60);
-    glutInitWindowSize(768, 672);
-    playerTexture = loadTexture("C:/Users/Mladen/Downloads/scuba2.png");
+    glutInitWindowSize(Xmax, Ymax);
+    playerTexture = loadTexture("C:/Users/datcha/source/repos/failaip12/Projekat-Grafika/Projekat/pics/shark2.png");
     if (playerTexture == 0) {
         return 1;
     }
