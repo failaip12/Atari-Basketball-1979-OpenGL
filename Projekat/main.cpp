@@ -4,6 +4,7 @@
 #include <stdlib.h>	
 #include <iostream>
 #include <ctime>
+#include <vector>
 #include <string>
 #include "Glut.h"
 #include "stb_image.h"
@@ -49,6 +50,11 @@ float gravity = 0.1f;
 static bool shotFired = false;
 bool shootKeyHeld = false;
 static float shootStrength = 0.0f;
+
+
+std::vector<int> keyBuffer;
+bool specialKeyState[256] = { false };
+
 enum Color {
     RED,
     GREEN,
@@ -103,29 +109,37 @@ GLuint loadTexture(const char* filename) {
 void shootBall(float shotStrength) {
     if (!shotFired) {
         // Set the initial velocity of the ball for an arc
-        float minSpeed = 5.0f;  // Minimum speed of the ball
-        float maxSpeed = 10.0f; // Maximum speed of the ball
+        float minSpeed = 1.0f;  // Minimum speed of the ball
+        float maxSpeed = 10.0f;  // Maximum speed of the ball
 
         // Set the minimum and maximum angle for the ball's trajectory
-        float minAngle = 30.0f; // Minimum angle in degrees
+        float minAngle = 45.0f; // Minimum angle in degrees
         float maxAngle = 60.0f; // Maximum angle in degrees
 
         // Calculate the speed based on the shot strength
         float speedRange = maxSpeed - minSpeed;
         float shotSpeed = minSpeed + (speedRange * shotStrength);
 
+        // Clamp the shotSpeed to ensure it is within the valid range
+        shotSpeed = fminf(fmaxf(shotSpeed, minSpeed), maxSpeed);
+
         // Calculate the angle based on the shot strength
         float angleRange = maxAngle - minAngle;
         float shotAngle = minAngle + (angleRange * shotStrength);
+
+        // Clamp the shotAngle to ensure it is within the valid range
+        shotAngle = fminf(fmaxf(shotAngle, minAngle), maxAngle);
 
         // Convert the angle to radians
         float radians = shotAngle * 3.14159f / 180.0f;
 
         // Calculate the initial velocities
-        ballSpeedX = shotSpeed * cosf(radians);
-        ballSpeedY = shotSpeed * sinf(radians);
+        ballSpeedX = fabsf(shotSpeed * cosf(radians));
+        ballSpeedY = fabsf(shotSpeed * sinf(radians));
+        printf("X:%f, Y:%f\n", shotSpeed, ballSpeedY);
     }
 }
+
 bool checkPlayerBallCollision(float playerX, float playerY, float ballX, float ballY, float playerWidth, float playerHeight, float ballRadius)
 {
     // Calculate the boundaries of the player rectangle
@@ -348,31 +362,16 @@ void calculateAndDrawTime() {
 
 void myKeyboardFunc(unsigned char key, int x, int y)
 {
-    switch (key)
-    {
-    case 'w':
-        player1Y += 5;
-        break;
-    case 's':
-        player1Y -= 5;
-        break;
-    case 'a':
-        player1X -= 5;
-        break;
-    case 'd':
-        player1X += 5;
-        break;
-    case 'r':
-        ballHeld = false;
-        break;
-    case 'v':
-        shootKeyHeld = true;
-        break;
-    }
-
+    keyBuffer.push_back(key);
 }
 void handleKeyRelease(unsigned char key, int x, int y)
 {
+    for (auto it = keyBuffer.begin(); it != keyBuffer.end(); ++it) {
+        if (*it == key) {
+            keyBuffer.erase(it);
+            break;
+        }
+    }
     switch (key)
     {
     case 'v':
@@ -389,21 +388,12 @@ void handleKeyRelease(unsigned char key, int x, int y)
 
 void mySpecialKeyFunc(int key, int x, int y)
 {
-    switch (key)
-    {
-    case GLUT_KEY_UP:
-        ballY += 5;
-        break;
-    case GLUT_KEY_DOWN:
-        ballY -= 5;
-        break;
-    case GLUT_KEY_LEFT:
-        ballX -= 5;
-        break;
-    case GLUT_KEY_RIGHT:
-        ballX += 5;
-        break;
-    }
+    specialKeyState[key] = true;
+}
+
+void mySpecialKeyFuncUp(int key, int x, int y)
+{
+    specialKeyState[key] = false;
 }
 
 
@@ -465,8 +455,61 @@ void resizeWindow(int w, int h)
 }
 // Declare a flag to track if the ball has passed through the hoop
 bool ballPassedThrough = false;
-
+void handleInput() {
+    std::vector<int> keysToRemove;
+    for (auto key : keyBuffer) {
+        if (key == 'w') {
+            player1Y += 5;
+        }
+        if (key == 's') {
+            player1Y -= 5;
+        }
+        if (key == 'a') {
+            player1X -= 5;
+        }
+        if (key == 'd') {
+            player1X += 5;
+        }
+        if (key == 'u') {
+            ballX += 5;
+        }
+        if (key == 'r') {
+            ballHeld = false;
+        }
+        if (key == 'v') {
+            shootKeyHeld = true;
+        }
+        keysToRemove.push_back(key);
+    }
+    for (auto key : keysToRemove) {
+        auto it = std::find(keyBuffer.begin(), keyBuffer.end(), key);
+        if (it != keyBuffer.end()) {
+            keyBuffer.erase(it);
+        }
+    }
+    if (specialKeyState[GLUT_KEY_UP]) {
+        ballY += 5;
+    }
+    if (specialKeyState[GLUT_KEY_DOWN]) {
+        ballY -= 5;
+    }
+    if (specialKeyState[GLUT_KEY_LEFT]) {
+        ballX -= 5;
+    }
+    if (specialKeyState[GLUT_KEY_RIGHT]) {
+        ballX += 5;
+    }
+}
 void timer(int value) {
+    handleInput();
+    printf("X:%f, Y:%f\n", player1X, player1Y);
+    //printf("shotFired: %d, shootKeyHeld: %d\n", shotFired, shootKeyHeld);
+    if (ballX - ballRadius < Xmin || ballX + ballRadius > Xmax) {
+        ballSpeedX = -ballSpeedX; // Reverse the ball's horizontal velocity
+    }
+    if (ballY - ballRadius < Ymin || ballY + ballRadius > Ymax) {
+        ballSpeedY = -ballSpeedY; // Reverse the ball's vertical velocity
+    }
     if (ballHeld) {
         jump_offset = jumpAmplitude * sinf(2.0f * 3.1415926f * jumpFrequency * time_ball);
     }
@@ -481,12 +524,10 @@ void timer(int value) {
 
         // Apply gravity to the ball's Y velocity
         ballSpeedY -= gravity;
-        ballSpeedX -= gravity;
 
         // Check if the ball has landed on the ground
-        if (ballY <= 60.0f) {
+        if (ballY - ballRadius <= 0.0f) {
             // Stop the ball on the ground
-            ballY = 0.0f;
             ballSpeedX = 0.0f;
             ballSpeedY = 0.0f;
             shotFired = false;
@@ -543,7 +584,6 @@ void timer(int value) {
 }
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
-
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
     glutInitWindowPosition(10, 60);
