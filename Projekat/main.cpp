@@ -1,7 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include <math.h>		
-#include <stdio.h>
-#include <stdlib.h>	
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <iostream>
 #include <ctime>
 #include <vector>
@@ -9,47 +8,50 @@
 #include "Glut.h"
 #include "stb_image.h"
 
-const double Xmin = 0.0, Xmax = 768.0;
-const double Ymin = 0.0, Ymax = 672.0;
+const double WINDOW_WIDTH = 768.0;
+const double WINDOW_HEIGHT = 672.0;
 
-const double courtdownY = Ymax / 7;
-const double courtupY = Ymax - Ymax / 4;
+const double courtdownY = WINDOW_HEIGHT / 7;
+const double courtupY = WINDOW_HEIGHT - WINDOW_HEIGHT / 4;
 
 static int scoreP1 = 0;
 static int scoreP2 = 0;
 
-static float ballX = Xmax / 2;
-static float ballY = Ymax / 2;
+static float ballX = WINDOW_WIDTH / 2;
+static float ballY = WINDOW_HEIGHT / 2;
 const float ballRadius = 6;
-static float ballSpeedX = 0.0f;
-static float ballSpeedY = 0.0f;
+static float ballSpeedX = 0.0;
+static float ballSpeedY = 0.0;
 
 const float hoopRimY = courtupY - 48;
-const float hoopLeftRimX = Xmin + 68;
-const float hoopRightRimX = Xmax - 68;
+const float hoopLeftRimX = 68;
+const float hoopRightRimX = WINDOW_WIDTH - 68;
 const float hoopRimRadius = 12;
+bool ballPassedThrough = false;
 
 static time_t startTime;
 static int countdownMinutes = 10;
 
 GLuint playerTexture;
+
 const int pole_height = 154;
 
-static float player1X = Xmax / 2 + 100;
-static float player1Y = Ymax / 2 + 100;
+static float player1X = WINDOW_WIDTH / 2 + 100;
+static float player1Y = WINDOW_HEIGHT / 2 + 100;
 const int playerWidth = 120;
 const int playerHeight = 120;
 
 static bool ballHeld = false;
-static float jumpAmplitude = 19.0f;
-static float jumpFrequency = 5.0f;
-static float time_ball = 0.0f;
+static float jumpAmplitude = 19.0;
+static float jumpFrequency = 5.0;
+static float time_ball = 0.0;
+const float TIME_INCREMENT = 0.01;
 static float jump_offset;
-float gravity = 0.1f;
+float gravity = 0.1;
 
 static bool shotFired = false;
 bool shootKeyHeld = false;
-static float shootStrength = 0.0f;
+static float shootStrength = 0.0;
 
 
 bool keyState[256] = { false };
@@ -62,25 +64,22 @@ enum Color {
     BLACK,
     WHITE,
     ORANGE,
-    COURT_COLOR,
     HOOP_BACKBOARD
 };
 
 const GLfloat colors[][3] = {
-    {1.0f, 0.0f, 0.0f},                     // RED
-    {0.0f, 1.0f, 0.0f},                     // GREEN
-    {0.0f, 0.0f, 1.0f},                     // BLUE
-    {0.0f, 0.0f, 0.0f},                     // BLACK
-    {1.0f, 1.0f, 1.0f},                     // WHITE
-    {1.0f, 0.647f, 0.0f},                   // ORANGE
-    {0.4609375f, 0.4609375f, 0.46484375f},  // COURT_COLOR
-    {0.53f, 0.39f, 0.18f}                   // HOOP_BACKBOARD
+    {1.0, 0.0, 0.0},                     // RED
+    {0.0, 1.0, 0.0},                     // GREEN
+    {0.0, 0.0, 1.0},                     // BLUE
+    {0.0, 0.0, 0.0},                     // BLACK
+    {1.0, 1.0, 1.0},                     // WHITE
+    {1.0, 0.647, 0.0},                   // ORANGE
+    {0.53, 0.39, 0.18}                   // HOOP_BACKBOARD
 };
 
 GLuint loadTexture(const char* filename) {
     GLuint textureID;
     glGenTextures(1, &textureID);
-
 
     int width, height, channels;
     stbi_set_flip_vertically_on_load(true);
@@ -106,34 +105,22 @@ GLuint loadTexture(const char* filename) {
 
     return textureID;
 }
+
 void shootBall(float shotStrength) {
     if (!shotFired) {
-        // Set the initial velocity of the ball for an arc
-        float minSpeed = 1.0f;  // Minimum speed of the ball
-        float maxSpeed = 10.0f;  // Maximum speed of the ball
+        float minSpeed = 1.0;
+        float maxSpeed = 10.0;
+        float minAngle = 45.0;
+        float maxAngle = 60.0;
 
-        // Set the minimum and maximum angle for the ball's trajectory
-        float minAngle = 45.0f; // Minimum angle in degrees
-        float maxAngle = 60.0f; // Maximum angle in degrees
-
-        // Calculate the speed based on the shot strength
-        float speedRange = maxSpeed - minSpeed;
-        float shotSpeed = minSpeed + (speedRange * shotStrength);
-
-        // Clamp the shotSpeed to ensure it is within the valid range
+        float shotSpeed = minSpeed + (shotStrength * (maxSpeed - minSpeed));
         shotSpeed = fminf(fmaxf(shotSpeed, minSpeed), maxSpeed);
 
-        // Calculate the angle based on the shot strength
-        float angleRange = maxAngle - minAngle;
-        float shotAngle = minAngle + (angleRange * shotStrength);
-
-        // Clamp the shotAngle to ensure it is within the valid range
+        float shotAngle = minAngle + (shotStrength * (maxAngle - minAngle));
         shotAngle = fminf(fmaxf(shotAngle, minAngle), maxAngle);
 
-        // Convert the angle to radians
-        float radians = shotAngle * 3.14159f / 180.0f;
+        float radians = shotAngle * M_PI / 180.0;
 
-        // Calculate the initial velocities
         ballSpeedX = fabsf(shotSpeed * cosf(radians));
         ballSpeedY = fabsf(shotSpeed * sinf(radians));
         printf("X:%f, Y:%f\n", shotSpeed, ballSpeedY);
@@ -162,187 +149,167 @@ bool checkPlayerBallCollision(float playerX, float playerY, float ballX, float b
     return false; // Player did not touch the ball
 }
 
+void drawCircle(int GLprimitive, float centerX, float centerY, float radius) {
+    glBegin(GLprimitive);
+    for (int i = 0; i < 1080; ++i) {
+        float theta = i * M_PI / 180.0;
+        float x = radius * cos(theta);
+        float y = radius * sin(theta);
+        glVertex2f(x + centerX, y + centerY);
+    }
+    glEnd();
+}
+
 void drawStaticElements() {
     // Draw the court rectangle
     glColor3fv(colors[BLACK]);
-    glLineWidth(5.0f);
+    glLineWidth(5.0);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(Xmin, courtdownY);
-    glVertex2f(Xmax, courtdownY);
-    glVertex2f(Xmax - 100, courtupY);
-    glVertex2f(Xmin + 100, courtupY);
+    glVertex2f(0.0, courtdownY);
+    glVertex2f(WINDOW_WIDTH, courtdownY);
+    glVertex2f(WINDOW_WIDTH - 100, courtupY);
+    glVertex2f(100, courtupY);
     glEnd();
 
     // Draw the court center line
     glBegin(GL_LINES);
-    glVertex2f(Xmax / 2, courtupY);
-    glVertex2f(Xmax / 2, courtdownY);
+    glVertex2f(WINDOW_WIDTH / 2, courtupY);
+    glVertex2f(WINDOW_WIDTH / 2, courtdownY);
     glEnd();
 
     // Draw the threepoint square left side
     glBegin(GL_LINE_STRIP);
-    glVertex2f(Xmin + 58, (courtdownY + courtupY) / 2 + 30);
-    glVertex2f(Xmin + 178, (courtdownY + courtupY) / 2 + 30);
-    glVertex2f(Xmin + 170, (courtdownY + courtupY) / 2 - 30);
-    glVertex2f(Xmin + 43, (courtdownY + courtupY) / 2 - 30);
+    glVertex2f(58, (courtdownY + courtupY) / 2 + 30);
+    glVertex2f(178, (courtdownY + courtupY) / 2 + 30);
+    glVertex2f(170, (courtdownY + courtupY) / 2 - 30);
+    glVertex2f(43, (courtdownY + courtupY) / 2 - 30);
     glEnd();
 
     // Draw the threepoint square right side
     glBegin(GL_LINE_STRIP);
-    glVertex2f(Xmax - 58, (courtdownY + courtupY) / 2 + 30);
-    glVertex2f(Xmax - 178, (courtdownY + courtupY) / 2 + 30);
-    glVertex2f(Xmax - 170, (courtdownY + courtupY) / 2 - 30);
-    glVertex2f(Xmax - 43, (courtdownY + courtupY) / 2 - 30);
+    glVertex2f(WINDOW_WIDTH - 58, (courtdownY + courtupY) / 2 + 30);
+    glVertex2f(WINDOW_WIDTH - 178, (courtdownY + courtupY) / 2 + 30);
+    glVertex2f(WINDOW_WIDTH - 170, (courtdownY + courtupY) / 2 - 30);
+    glVertex2f(WINDOW_WIDTH - 43, (courtdownY + courtupY) / 2 - 30);
     glEnd();
+
 
     // Draw the center line circle
-    glBegin(GL_LINE_LOOP); // NE KONTAM
-    for (int i = 0; i < 1080; ++i) {
-        float theta = 2.0f * 3.1415926f * float(i) / float(360);
-
-        float x = 35 * cosf(theta);
-        float y = 35 * sinf(theta);
-        glVertex2f(x + Xmax / 2, y + (courtdownY + courtupY) / 2);
-    }
-    glEnd();
+    drawCircle(GL_LINE_LOOP, WINDOW_WIDTH / 2, (courtdownY + courtupY) / 2, 35);
 
     //HOOP LEFT
     //Hoop pole 1
     glBegin(GL_QUADS);
-    glVertex2f(Xmin + 25, (courtdownY + courtupY) / 2);
-    glVertex2f(Xmin + 25, (courtdownY + courtupY) / 2 + pole_height);
-    glVertex2f(Xmin + 35, (courtdownY + courtupY) / 2 + pole_height);
-    glVertex2f(Xmin + 35, (courtdownY + courtupY) / 2);
+    glVertex2f(25, (courtdownY + courtupY) / 2);
+    glVertex2f(25, (courtdownY + courtupY) / 2 + pole_height);
+    glVertex2f(35, (courtdownY + courtupY) / 2 + pole_height);
+    glVertex2f(35, (courtdownY + courtupY) / 2);
     glEnd();
     //Hoop pole 2
     glBegin(GL_QUADS);
-    glVertex2f(Xmin + 25, courtupY - 50);
-    glVertex2f(Xmin + 25, courtupY - 40);
-    glVertex2f(Xmin + 50, courtupY - 40);
-    glVertex2f(Xmin + 50, courtupY - 50);
+    glVertex2f(25, courtupY - 50);
+    glVertex2f(25, courtupY - 40);
+    glVertex2f(50, courtupY - 40);
+    glVertex2f(50, courtupY - 50);
     glEnd();
 
     //Hoop backboard NEEDS FIXING
     glColor3fv(colors[HOOP_BACKBOARD]);
     glBegin(GL_QUADS);
-    glVertex2f(Xmin + 50, courtupY - 70);
-    glVertex2f(Xmin + 50, courtupY - 20);
-    glVertex2f(Xmin + 70, courtupY + 40);
-    glVertex2f(Xmin + 70, courtupY - 10);
+    glVertex2f(50, courtupY - 70);
+    glVertex2f(50, courtupY - 20);
+    glVertex2f(70, courtupY + 40);
+    glVertex2f(70, courtupY - 10);
     glEnd();
 
     //Hoop rim NEEDS FIXING
-    glLineWidth(1.0f);
-    glColor3fv(colors[WHITE]); //???????????????????????????????????????????????????????????????????????????????????????????????
-    glBegin(GL_LINE_LOOP);
-    for (int i = 0; i < 1080; ++i) {
-        float theta = 2.0f * 3.1415926f * float(i) / float(360);//get the current angle
-
-        float x = hoopRimRadius * cosf(theta);//calculate the x component
-        float y = hoopRimRadius * sinf(theta);//calculate the y component
-        glVertex2f(x + hoopLeftRimX, y + hoopRimY);
-    }
-    glEnd();
+    glLineWidth(1.0);
+    glColor3fv(colors[WHITE]);
+    drawCircle(GL_LINE_LOOP, hoopLeftRimX, hoopRimY, hoopRimRadius);
 
     //HOOP RIGHT
 
     //Hoop pole 1
     glColor3fv(colors[BLACK]);
     glBegin(GL_QUADS);
-    glVertex2f(Xmax - 25, (courtdownY + courtupY) / 2);
-    glVertex2f(Xmax - 25, (courtdownY + courtupY) / 2 + pole_height);
-    glVertex2f(Xmax - 35, (courtdownY + courtupY) / 2 + pole_height);
-    glVertex2f(Xmax - 35, (courtdownY + courtupY) / 2);
+    glVertex2f(WINDOW_WIDTH - 25, (courtdownY + courtupY) / 2);
+    glVertex2f(WINDOW_WIDTH - 25, (courtdownY + courtupY) / 2 + pole_height);
+    glVertex2f(WINDOW_WIDTH - 35, (courtdownY + courtupY) / 2 + pole_height);
+    glVertex2f(WINDOW_WIDTH - 35, (courtdownY + courtupY) / 2);
     glEnd();
     //Hoop pole 2
     glBegin(GL_QUADS);
-    glVertex2f(Xmax - 25, courtupY - 50);
-    glVertex2f(Xmax - 25, courtupY - 40);
-    glVertex2f(Xmax - 50, courtupY - 40);
-    glVertex2f(Xmax - 50, courtupY - 50);
+    glVertex2f(WINDOW_WIDTH - 25, courtupY - 50);
+    glVertex2f(WINDOW_WIDTH - 25, courtupY - 40);
+    glVertex2f(WINDOW_WIDTH - 50, courtupY - 40);
+    glVertex2f(WINDOW_WIDTH - 50, courtupY - 50);
     glEnd();
 
     //Hoop backboard NEEDS FIXING
     glColor3fv(colors[HOOP_BACKBOARD]);
     glBegin(GL_QUADS);
-    glVertex2f(Xmax - 50, courtupY - 70);
-    glVertex2f(Xmax - 50, courtupY - 20);
-    glVertex2f(Xmax - 70, courtupY + 40);
-    glVertex2f(Xmax - 70, courtupY - 10);
+    glVertex2f(WINDOW_WIDTH - 50, courtupY - 70);
+    glVertex2f(WINDOW_WIDTH - 50, courtupY - 20);
+    glVertex2f(WINDOW_WIDTH - 70, courtupY + 40);
+    glVertex2f(WINDOW_WIDTH - 70, courtupY - 10);
     glEnd();
 
     //Hoop rim NEEDS FIXING
     glLineWidth(1.0f);
     glColor3fv(colors[WHITE]);
-    glBegin(GL_LINE_LOOP);
-    for (int i = 0; i < 1080; ++i) {
-        float theta = 2.0f * 3.1415926f * float(i) / float(360);//get the current angle
-
-        float x = 12 * cosf(theta);//calculate the x component
-        float y = 12 * sinf(theta);//calculate the y component
-        glVertex2f(x + hoopRightRimX, y + hoopRimY);
-    }
-
-    glEnd();
+    drawCircle(GL_LINE_LOOP, hoopRightRimX, hoopRimY, 12);
 }
 
 void drawBall(float x_offset, float y_offset) {
     glColor3fv(colors[ORANGE]);
-    glBegin(GL_POLYGON);
-    for (int i = 0; i < 360; ++i) {
-        float theta = 2.0f * 3.1415926f * float(i) / float(360); // Get the current angle
-        float x = ballRadius * cosf(theta); // Calculate the x component
-        float y = ballRadius * sinf(theta); // Calculate the y component
-        glVertex2f(x + x_offset, y + y_offset);
-    }
-    glEnd();
+    drawCircle(GL_POLYGON, x_offset, y_offset, ballRadius);
 }
+
 void drawPlayer1(float x_offset, float y_offset) {
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, playerTexture);
     glBegin(GL_QUADS);
-    glTexCoord2f(0.0f, 1.0f);
+    glTexCoord2f(0.0, 1.0);
     glVertex2f(x_offset, playerHeight + y_offset);
-    glTexCoord2f(0.0f, 0.0f);
+    glTexCoord2f(0.0, 0.0);
     glVertex2f(x_offset, y_offset);
-    glTexCoord2f(1.0f, 0.0f);
+    glTexCoord2f(1.0, 0.0);
     glVertex2f(playerWidth + x_offset, y_offset);
-    glTexCoord2f(1.0f, 1.0f);
+    glTexCoord2f(1.0, 1.0);
     glVertex2f(playerWidth + x_offset, playerHeight + y_offset);
     glEnd();
     glDisable(GL_TEXTURE_2D);
 }
+
+void drawText(const std::string& text, float x, float y) {
+    for (char c : text) {
+        glRasterPos2f(x, y);
+        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
+        x += glutBitmapWidth(GLUT_BITMAP_TIMES_ROMAN_24, c);
+    }
+}
+
 void drawScore() {
     glColor3fv(colors[WHITE]);
-    //PLAYER 1 SCORE
-    glRasterPos2f(Xmax / 2 - 150, Ymax - 75);
-    std::string score = "SCORE";
-    for (char c : score) {
-        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
-    }
 
-    glRasterPos2f(Xmax / 2 - 117, Ymax - 100);
+    std::string score = "SCORE";
+    float player1X = WINDOW_WIDTH / 2 - 150;
+    float player1Y = WINDOW_HEIGHT - 75;
+    drawText(score, player1X, player1Y);
 
     std::string str_scoreP1 = std::to_string(scoreP1);
+    float scoreP1X = WINDOW_WIDTH / 2 - 117;
+    float scoreP1Y = WINDOW_HEIGHT - 100;
+    drawText(str_scoreP1, scoreP1X, scoreP1Y);
 
-    for (char c : str_scoreP1) {
-        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
-    }
-
-    //PLAYER 2 SCORE
-    glRasterPos2f(Xmax / 2 + 80, Ymax - 75);
-
-    for (char c : score) {
-        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
-    }
-
-    glRasterPos2f(Xmax / 2 + 113, Ymax - 100);
+    float player2X = WINDOW_WIDTH / 2 + 80;
+    float player2Y = WINDOW_HEIGHT - 75;
+    drawText(score, player2X, player2Y);
 
     std::string str_scoreP2 = std::to_string(scoreP2);
-
-    for (char c : str_scoreP2) {
-        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
-    }
+    float scoreP2X = WINDOW_WIDTH / 2 + 113;
+    float scoreP2Y = WINDOW_HEIGHT - 100;
+    drawText(str_scoreP2, scoreP2X, scoreP2Y);
 }
 
 void calculateAndDrawTime() {
@@ -352,12 +319,11 @@ void calculateAndDrawTime() {
     int remainingMinutes = countdownMinutes - 1 - static_cast<int>(elapsedSeconds) / 60;
     int remainingSeconds = 59 - static_cast<int>(elapsedSeconds) % 60;
 
-    glRasterPos2f(Xmax / 2 - 20, Ymax - 50);
-
     std::string timerText = std::to_string(remainingMinutes) + ":" + (remainingSeconds < 10 ? "0" : "") + std::to_string(remainingSeconds);
-    for (char c : timerText) {
-        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
-    }
+
+    float timerX = WINDOW_WIDTH / 2 - 20;
+    float timerY = WINDOW_HEIGHT - 50;
+    drawText(timerText, timerX, timerY);
 }
 
 void myKeyboardFunc(unsigned char key, int x, int y)
@@ -393,7 +359,7 @@ void mySpecialKeyFuncUp(int key, int x, int y)
 
 
 void drawScene() {
-    glClearColor(0.4609375f, 0.4609375f, 0.46484375f, 0.0f);
+    glClearColor(0.4609375, 0.4609375, 0.46484375, 0.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
     calculateAndDrawTime();
@@ -426,21 +392,21 @@ void resizeWindow(int w, int h)
 
     w = (w == 0) ? 1 : w;
     h = (h == 0) ? 1 : h;
-    if ((Xmax - Xmin) / w < (Ymax - Ymin) / h) {
-        scale = ((Ymax - Ymin) / h) / ((Xmax - Xmin) / w);
-        center = (Xmax + Xmin) / 2;
-        windowXmin = center - (center - Xmin) * scale;
-        windowXmax = center + (Xmax - center) * scale;
-        windowYmin = Ymin;
-        windowYmax = Ymax;
+    if ((WINDOW_WIDTH / w) < (WINDOW_HEIGHT / h)) {
+        scale = ((WINDOW_HEIGHT / h) / (WINDOW_WIDTH / w));
+        center = WINDOW_WIDTH/ 2;
+        windowXmin = center - (center* scale);
+        windowXmax = center + (WINDOW_WIDTH - center) * scale;
+        windowYmin = 0.0;
+        windowYmax = WINDOW_HEIGHT;
     }
     else {
-        scale = ((Xmax - Xmin) / w) / ((Ymax - Ymin) / h);
-        center = (Ymax + Ymin) / 2;
-        windowYmin = center - (center - Ymin) * scale;
-        windowYmax = center + (Ymax - center) * scale;
-        windowXmin = Xmin;
-        windowXmax = Xmax;
+        scale = ((WINDOW_WIDTH / w) / (WINDOW_HEIGHT / h));
+        center = WINDOW_HEIGHT / 2;
+        windowYmin = center - (center * scale);
+        windowYmax = center + (WINDOW_HEIGHT - center) * scale;
+        windowXmin = 0.0;
+        windowXmax = WINDOW_WIDTH;
     }
 
     glMatrixMode(GL_PROJECTION);
@@ -448,9 +414,8 @@ void resizeWindow(int w, int h)
     gluOrtho2D(windowXmin, windowXmax, windowYmin, windowYmax);
 
 }
-// Declare a flag to track if the ball has passed through the hoop
-bool ballPassedThrough = false;
-void handleInput2() {
+
+void handleInput() {
     if (keyState['w'] && keyState['a']) {
         player1Y += 2.5;
         player1X -= 2.5;
@@ -546,83 +511,75 @@ void handleInput2() {
         // Perform ball stealing action for Player 2
     }
 }
+
 void timer(int value) {
-    handleInput2();
     //printf("X:%f, Y:%f\n", player1X, player1Y);
     //printf("shotFired: %d, shootKeyHeld: %d\n", shotFired, shootKeyHeld);
     //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
-    if (ballX - ballRadius < Xmin || ballX + ballRadius > Xmax) {
-        ballSpeedX = -ballSpeedX; // Reverse the ball's horizontal velocity
+    handleInput();
+
+    if (ballX - ballRadius < 0.0 || ballX + ballRadius > WINDOW_WIDTH) {
+        ballSpeedX = -ballSpeedX;
     }
-    if (ballY - ballRadius < Ymin || ballY + ballRadius > Ymax) {
-        ballSpeedY = -ballSpeedY; // Reverse the ball's vertical velocity
+
+    if (ballY - ballRadius < 0.0 || ballY + ballRadius > WINDOW_HEIGHT) {
+        ballSpeedY = -ballSpeedY;
     }
+
     if (ballHeld) {
-        jump_offset = jumpAmplitude * sinf(2.0f * 3.1415926f * jumpFrequency * time_ball);
+        jump_offset = jumpAmplitude * sinf(2.0 * M_PI * jumpFrequency * time_ball);
     }
     else {
         jump_offset = 0.0;
     }
-    // Update ball position
+
     if (shotFired) {
-        // Update ball position in an arc
         ballX += ballSpeedX;
         ballY += ballSpeedY;
-
-        // Apply gravity to the ball's Y velocity
         ballSpeedY -= gravity;
 
-        // Check if the ball has landed on the ground
-        if (ballY - ballRadius <= 0.0f) {
-            // Stop the ball on the ground
+        if (ballY - ballRadius <= 0.0) {
             ballSpeedX = 0.0f;
             ballSpeedY = 0.0f;
             shotFired = false;
         }
     }
-    if (shootKeyHeld && !shotFired)
-    {
-        shootStrength += 0.1f; // Adjust the increment as needed
+
+    if (shootKeyHeld && !shotFired) {
+        shootStrength += 0.1;
     }
 
-    time_ball += 0.01f; // Increment the time variable
-    // Check if the ball is within the range of the hoop
+    time_ball += TIME_INCREMENT;
+
     bool ballInRange = (ballY - ballRadius < hoopRimY + hoopRimRadius) && (ballY + ballRadius > hoopRimY - hoopRimRadius);
     bool touched = checkPlayerBallCollision(player1X, player1Y, ballX, ballY, playerWidth, playerHeight, ballRadius);
-    //printf("touched: %d, ballHeld: %d\n", touched, ballHeld);
+
     if (touched) {
         ballHeld = true;
         shotFired = false;
         ballX = player1X + 70;
         ballY = player1Y + 40;
     }
+
     if (ballHeld) {
         ballX = player1X + 70;
         ballY = player1Y + 40;
     }
+
     if (ballInRange) {
-        // Check if the ball passes through the left rim of the hoop
         float distanceToLeftRim = abs(ballX - hoopLeftRimX);
         if (distanceToLeftRim < hoopRimRadius && !ballPassedThrough) {
-            // Ball passed through the hoop
             scoreP1 += 1;
-
-            // Set the flag to prevent multiple score increments
             ballPassedThrough = true;
         }
 
-        // Check if the ball passes through the right rim of the hoop
         float distanceToRightRim = abs(ballX - hoopRightRimX);
         if (distanceToRightRim < hoopRimRadius && !ballPassedThrough) {
-            // Ball passed through the hoop
             scoreP2 += 1;
-
-            // Set the flag to prevent multiple score increments
             ballPassedThrough = true;
         }
     }
 
-    // Reset the flag if the ball is not within the range of the hoop
     if (!ballInRange) {
         ballPassedThrough = false;
     }
@@ -630,12 +587,13 @@ void timer(int value) {
     glutPostRedisplay();
     glutTimerFunc(16, timer, 0);
 }
+
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 
     glutInitWindowPosition(10, 60);
-    glutInitWindowSize(Xmax, Ymax);
+    glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     glutCreateWindow("Basketball");
     playerTexture = loadTexture("C:/Users/datcha/source/repos/failaip12/Projekat-Grafika/Projekat/pics/1.png");
@@ -649,7 +607,6 @@ int main(int argc, char** argv) {
     glutKeyboardUpFunc(handleKeyRelease);
     glutSpecialFunc(mySpecialKeyFunc);
     glutSpecialUpFunc(mySpecialKeyFuncUp);
-
 
     glutReshapeFunc(resizeWindow);
 
