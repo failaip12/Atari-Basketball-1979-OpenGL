@@ -27,7 +27,7 @@ const float hoopRimY = courtupY - 48;
 const float hoopLeftRimX = 68;
 const float hoopRightRimX = WINDOW_WIDTH - 68;
 const float hoopRimRadius = 12;
-bool ballPassedThrough = false;
+static bool ballPassedThrough = false;
 
 static time_t startTime;
 static int countdownMinutes = 10;
@@ -47,15 +47,33 @@ static float jumpFrequency = 5.0;
 static float time_ball = 0.0;
 const float TIME_INCREMENT = 0.01;
 static float jump_offset;
-float gravity = 0.1;
+static float gravity = 0.1;
 
 static bool shotFired = false;
-bool shootKeyHeld = false;
+static bool shootKeyHeld = false;
 static float shootStrength = 0.0;
 
 
-bool keyState[256] = { false };
-bool specialKeyState[256] = { false };
+static bool keyState[256] = { false };
+static bool specialKeyState[256] = { false };
+
+struct Movement {
+    char key[2];
+    float deltaY;
+    float deltaX;
+};
+Movement player1Movements[] = {
+    {{'w', 'W'}, 4, 0},
+    {{'s', 'S'}, -4, 0},
+    {{'a', 'A'}, 0, -4},
+    {{'d', 'D'}, 0, 4}
+};
+Movement player2Movements[] = {
+    {{'i', 'I'}, 4, 0},
+    {{'k', 'K'}, -4, 0},
+    {{'j', 'J'}, 0, -4},
+    {{'l', 'L'}, 0, 4}
+};
 
 enum Color {
     RED,
@@ -111,7 +129,7 @@ void shootBall(float shotStrength) {
         float minSpeed = 1.0;
         float maxSpeed = 10.0;
         float minAngle = 45.0;
-        float maxAngle = 60.0;
+        float maxAngle = 75.0;
 
         float shotSpeed = minSpeed + (shotStrength * (maxSpeed - minSpeed));
         shotSpeed = fminf(fmaxf(shotSpeed, minSpeed), maxSpeed);
@@ -123,7 +141,8 @@ void shootBall(float shotStrength) {
 
         ballSpeedX = fabsf(shotSpeed * cosf(radians));
         ballSpeedY = fabsf(shotSpeed * sinf(radians));
-        printf("X:%f, Y:%f\n", shotSpeed, ballSpeedY);
+        shootStrength = 0.0;
+        //printf("X:%f, Y:%f\n", shotSpeed, ballSpeedY);
     }
 }
 
@@ -330,21 +349,9 @@ void myKeyboardFunc(unsigned char key, int x, int y)
 {
     keyState[key] = true;
 }
-void handleKeyRelease(unsigned char key, int x, int y)
+void myKeyboardFuncUp(unsigned char key, int x, int y)
 {
     keyState[key] = false;
-    switch (key)
-    {
-    case 'v':
-        if (!shotFired)
-        {
-            shootBall(shootStrength);
-            shotFired = true;
-            ballHeld = false;
-        }
-        shootKeyHeld = false;
-        break;
-    }
 }
 
 void mySpecialKeyFunc(int key, int x, int y)
@@ -416,70 +423,42 @@ void resizeWindow(int w, int h)
 }
 
 void handleInput() {
-    if (keyState['w'] && keyState['a']) {
-        player1Y += 2.5;
-        player1X -= 2.5;
-    }
-    else if (keyState['w'] && keyState['d']) {
-        player1Y += 2.5;
-        player1X += 2.5;
-    }
-    else if (keyState['s'] && keyState['a']) {
-        player1Y -= 2.5;
-        player1X -= 2.5;
-    }
-    else if (keyState['s'] && keyState['d']) {
-        player1Y -= 2.5;
-        player1X += 2.5;
-    }
-    else if (keyState['w']) {
-        player1Y += 5;
-    }
-    else if (keyState['s']) {
-        player1Y -= 5;
-    }
-    else if (keyState['a']) {
-        player1X -= 5;
-    }
-    else if (keyState['d']) {
-        player1X += 5;
+    // Player 1 movement
+    for (const auto& movement : player1Movements) {
+        for (const auto& key : movement.key) {
+            if (keyState[key]) {
+                player1Y += movement.deltaY;
+                player1X += movement.deltaX;
+                break;
+            }
+        }
     }
 
     // Player 2 movement
-    if (specialKeyState[GLUT_KEY_UP] && specialKeyState[GLUT_KEY_LEFT]) {
-        ballY += 2.5;
-        ballX -= 2.5;
-    }
-    else if (specialKeyState[GLUT_KEY_UP] && specialKeyState[GLUT_KEY_RIGHT]) {
-        ballY += 2.5;
-        ballX += 2.5;
-    }
-    else if (specialKeyState[GLUT_KEY_DOWN] && specialKeyState[GLUT_KEY_LEFT]) {
-        ballY -= 2.5;
-        ballX -= 2.5;
-    }
-    else if (specialKeyState[GLUT_KEY_DOWN] && specialKeyState[GLUT_KEY_RIGHT]) {
-        ballY -= 2.5;
-        ballX += 2.5;
-    }
-    else if (specialKeyState[GLUT_KEY_UP]) {
-        ballY+=5;
-    }
-    else if (specialKeyState[GLUT_KEY_DOWN]) {
-        ballY -= 5;
-    }
-    else if (specialKeyState[GLUT_KEY_LEFT]) {
-        ballX -= 5;
-    }
-    else if (specialKeyState[GLUT_KEY_RIGHT]) {
-        ballX += 5;
+    for (const auto& movement : player2Movements) {
+        for (const auto& key : movement.key) {
+            if (keyState[key]) {
+                ballY += movement.deltaY;
+                ballX += movement.deltaX;
+                break;
+            }
+        }
     }
 
     // Player 1 shooting
-    if (keyState['f']) {
-        // 'f' key is held for Player 1
-        // Perform shooting action for Player 1
+    if (keyState['f'] || keyState['F']) {
+        shootKeyHeld = true;
     }
+    // Player 1 shooting release
+    if (!keyState['f'] && !keyState['F'] && shootKeyHeld) {
+        shootKeyHeld = false;
+        if (!shotFired) {
+            shootBall(shootStrength);
+            shotFired = true;
+            ballHeld = false;
+        }
+    }
+
 
     // Player 2 shooting
     if (keyState['l']) {
@@ -512,11 +491,34 @@ void handleInput() {
     }
 }
 
+void checkBallCollision() {
+    // Check collision with the backboard
+    if (ballY <= courtupY - 70 && ballY >= courtupY - 20) {
+
+        if (ballX >= 50 && ballX <= 70) {
+            // Ball collided with the backboard
+            ballSpeedX *= -1; // Reverse the horizontal direction of the ball
+        }
+    }
+
+    // Check collision with the rim
+    float rimDistanceX = fabs(ballX - hoopLeftRimX);
+    float rimDistanceY = fabs(ballY - hoopRimY);
+    float distanceToRim = sqrt(pow(rimDistanceX, 2) + pow(rimDistanceY, 2));
+
+    if (distanceToRim <= hoopRimRadius + ballRadius) {
+        // Ball collided with the rim
+        ballSpeedX *= -1; // Reverse the horizontal direction of the ball
+        ballSpeedY *= -1; // Reverse the vertical direction of the ball
+    }
+}
+
 void timer(int value) {
     //printf("X:%f, Y:%f\n", player1X, player1Y);
     //printf("shotFired: %d, shootKeyHeld: %d\n", shotFired, shootKeyHeld);
     //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
     handleInput();
+    checkBallCollision();
 
     if (ballX - ballRadius < 0.0 || ballX + ballRadius > WINDOW_WIDTH) {
         ballSpeedX = -ballSpeedX;
@@ -546,7 +548,7 @@ void timer(int value) {
     }
 
     if (shootKeyHeld && !shotFired) {
-        shootStrength += 0.1;
+        shootStrength += 0.035;
     }
 
     time_ball += TIME_INCREMENT;
@@ -604,7 +606,7 @@ int main(int argc, char** argv) {
     initRendering();
 
     glutKeyboardFunc(myKeyboardFunc);
-    glutKeyboardUpFunc(handleKeyRelease);
+    glutKeyboardUpFunc(myKeyboardFuncUp);
     glutSpecialFunc(mySpecialKeyFunc);
     glutSpecialUpFunc(mySpecialKeyFuncUp);
 
