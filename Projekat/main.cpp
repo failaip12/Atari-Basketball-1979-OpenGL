@@ -52,9 +52,8 @@ bool shootKeyHeld = false;
 static float shootStrength = 0.0f;
 
 
-std::vector<int> keyBuffer;
-bool specialKeyState[256] = { false };
 bool keyState[256] = { false };
+bool specialKeyState[256] = { false };
 
 enum Color {
     RED,
@@ -363,16 +362,11 @@ void calculateAndDrawTime() {
 
 void myKeyboardFunc(unsigned char key, int x, int y)
 {
-    keyBuffer.push_back(key);
+    keyState[key] = true;
 }
 void handleKeyRelease(unsigned char key, int x, int y)
 {
-    for (auto it = keyBuffer.begin(); it != keyBuffer.end(); ++it) {
-        if (*it == key) {
-            keyBuffer.erase(it);
-            break;
-        }
-    }
+    keyState[key] = false;
     switch (key)
     {
     case 'v':
@@ -456,117 +450,64 @@ void resizeWindow(int w, int h)
 }
 // Declare a flag to track if the ball has passed through the hoop
 bool ballPassedThrough = false;
-void handleInput() {
-    std::vector<int> keysToRemove;
-    for (auto key : keyBuffer) {
-        if (key == 'w') {
-            player1Y += 5;
-        }
-        if (key == 's') {
-            player1Y -= 5;
-        }
-        if (key == 'a') {
-            player1X -= 5;
-        }
-        if (key == 'd') {
-            player1X += 5;
-        }
-        if (key == 'u') {
-            ballX += 5;
-        }
-        if (key == 'r') {
-            ballHeld = false;
-        }
-        if (key == 'v') {
-            shootKeyHeld = true;
-        }
-        keysToRemove.push_back(key);
-    }
-    for (auto key : keysToRemove) {
-        auto it = std::find(keyBuffer.begin(), keyBuffer.end(), key);
-        if (it != keyBuffer.end()) {
-            keyBuffer.erase(it);
-        }
-    }
-    if (specialKeyState[GLUT_KEY_UP]) {
-        ballY += 5;
-    }
-    if (specialKeyState[GLUT_KEY_DOWN]) {
-        ballY -= 5;
-    }
-    if (specialKeyState[GLUT_KEY_LEFT]) {
-        ballX -= 5;
-    }
-    if (specialKeyState[GLUT_KEY_RIGHT]) {
-        ballX += 5;
-    }
-}
 void handleInput2() {
     if (keyState['w'] && keyState['a']) {
-        player1Y += 5;
-        player1X -= 5;
+        player1Y += 2.5;
+        player1X -= 2.5;
     }
     else if (keyState['w'] && keyState['d']) {
-        // Simultaneous 'w' and 'd' key presses for Player 1
-        // Move Player 1 diagonally up-right
+        player1Y += 2.5;
+        player1X += 2.5;
     }
     else if (keyState['s'] && keyState['a']) {
-        // Simultaneous 's' and 'a' key presses for Player 1
-        // Move Player 1 diagonally down-left
+        player1Y -= 2.5;
+        player1X -= 2.5;
     }
     else if (keyState['s'] && keyState['d']) {
-        // Simultaneous 's' and 'd' key presses for Player 1
-        // Move Player 1 diagonally down-right
+        player1Y -= 2.5;
+        player1X += 2.5;
     }
     else if (keyState['w']) {
-        // Only 'w' key is held for Player 1
-        // Move Player 1 up
+        player1Y += 5;
     }
     else if (keyState['s']) {
-        // Only 's' key is held for Player 1
-        // Move Player 1 down
+        player1Y -= 5;
     }
     else if (keyState['a']) {
-        // Only 'a' key is held for Player 1
-        // Move Player 1 left
+        player1X -= 5;
     }
     else if (keyState['d']) {
-        // Only 'd' key is held for Player 1
-        // Move Player 1 right
+        player1X += 5;
     }
 
     // Player 2 movement
-    if (keyState[GLUT_KEY_UP] && keyState[GLUT_KEY_LEFT]) {
-        // Simultaneous Up and Left arrow key presses for Player 2
-        // Move Player 2 diagonally up-left
+    if (specialKeyState[GLUT_KEY_UP] && specialKeyState[GLUT_KEY_LEFT]) {
+        ballY += 2.5;
+        ballX -= 2.5;
     }
-    else if (keyState[GLUT_KEY_UP] && keyState[GLUT_KEY_RIGHT]) {
-        // Simultaneous Up and Right arrow key presses for Player 2
-        // Move Player 2 diagonally up-right
+    else if (specialKeyState[GLUT_KEY_UP] && specialKeyState[GLUT_KEY_RIGHT]) {
+        ballY += 2.5;
+        ballX += 2.5;
     }
-    else if (keyState[GLUT_KEY_DOWN] && keyState[GLUT_KEY_LEFT]) {
-        // Simultaneous Down and Left arrow key presses for Player 2
-        // Move Player 2 diagonally down-left
+    else if (specialKeyState[GLUT_KEY_DOWN] && specialKeyState[GLUT_KEY_LEFT]) {
+        ballY -= 2.5;
+        ballX -= 2.5;
     }
-    else if (keyState[GLUT_KEY_DOWN] && keyState[GLUT_KEY_RIGHT]) {
-        // Simultaneous Down and Right arrow key presses for Player 2
-        // Move Player 2 diagonally down-right
+    else if (specialKeyState[GLUT_KEY_DOWN] && specialKeyState[GLUT_KEY_RIGHT]) {
+        ballY -= 2.5;
+        ballX += 2.5;
     }
-    else if (keyState[GLUT_KEY_UP]) {
-        // Only Up arrow key is held for Player 2
-        // Move Player 2 up
+    else if (specialKeyState[GLUT_KEY_UP]) {
+        ballY+=5;
     }
-    else if (keyState[GLUT_KEY_DOWN]) {
-        // Only Down arrow key is held for Player 2
-        // Move Player 2 down
+    else if (specialKeyState[GLUT_KEY_DOWN]) {
+        ballY -= 5;
     }
-    else if (keyState[GLUT_KEY_LEFT]) {
-        // Only Left arrow key is held for Player 2
-        // Move Player 2 left
+    else if (specialKeyState[GLUT_KEY_LEFT]) {
+        ballX -= 5;
     }
-    else if (keyState[GLUT_KEY_RIGHT]) {
-        // Only Right arrow key is held for Player 2
-        // Move Player 2 right
+    else if (specialKeyState[GLUT_KEY_RIGHT]) {
+        ballX += 5;
     }
 
     // Player 1 shooting
@@ -606,9 +547,10 @@ void handleInput2() {
     }
 }
 void timer(int value) {
-    handleInput();
+    handleInput2();
     //printf("X:%f, Y:%f\n", player1X, player1Y);
     //printf("shotFired: %d, shootKeyHeld: %d\n", shotFired, shootKeyHeld);
+    //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
     if (ballX - ballRadius < Xmin || ballX + ballRadius > Xmax) {
         ballSpeedX = -ballSpeedX; // Reverse the ball's horizontal velocity
     }
@@ -647,6 +589,7 @@ void timer(int value) {
     // Check if the ball is within the range of the hoop
     bool ballInRange = (ballY - ballRadius < hoopRimY + hoopRimRadius) && (ballY + ballRadius > hoopRimY - hoopRimRadius);
     bool touched = checkPlayerBallCollision(player1X, player1Y, ballX, ballY, playerWidth, playerHeight, ballRadius);
+    //printf("touched: %d, ballHeld: %d\n", touched, ballHeld);
     if (touched) {
         ballHeld = true;
         shotFired = false;
@@ -705,6 +648,7 @@ int main(int argc, char** argv) {
     glutKeyboardFunc(myKeyboardFunc);
     glutKeyboardUpFunc(handleKeyRelease);
     glutSpecialFunc(mySpecialKeyFunc);
+    glutSpecialUpFunc(mySpecialKeyFuncUp);
 
 
     glutReshapeFunc(resizeWindow);
@@ -712,7 +656,6 @@ int main(int argc, char** argv) {
     glutDisplayFunc(drawScene);
 
     glutTimerFunc(0, timer, 0);
-
     startTime = time(NULL);
 
     glutMainLoop();
