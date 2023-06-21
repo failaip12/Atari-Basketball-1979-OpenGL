@@ -54,6 +54,7 @@ static float shootStrength = 0.0f;
 
 std::vector<int> keyBuffer;
 bool specialKeyState[256] = { false };
+bool keyState[256] = { false };
 
 enum Color {
     RED,
@@ -500,9 +501,113 @@ void handleInput() {
         ballX += 5;
     }
 }
+void handleInput2() {
+    if (keyState['w'] && keyState['a']) {
+        player1Y += 5;
+        player1X -= 5;
+    }
+    else if (keyState['w'] && keyState['d']) {
+        // Simultaneous 'w' and 'd' key presses for Player 1
+        // Move Player 1 diagonally up-right
+    }
+    else if (keyState['s'] && keyState['a']) {
+        // Simultaneous 's' and 'a' key presses for Player 1
+        // Move Player 1 diagonally down-left
+    }
+    else if (keyState['s'] && keyState['d']) {
+        // Simultaneous 's' and 'd' key presses for Player 1
+        // Move Player 1 diagonally down-right
+    }
+    else if (keyState['w']) {
+        // Only 'w' key is held for Player 1
+        // Move Player 1 up
+    }
+    else if (keyState['s']) {
+        // Only 's' key is held for Player 1
+        // Move Player 1 down
+    }
+    else if (keyState['a']) {
+        // Only 'a' key is held for Player 1
+        // Move Player 1 left
+    }
+    else if (keyState['d']) {
+        // Only 'd' key is held for Player 1
+        // Move Player 1 right
+    }
+
+    // Player 2 movement
+    if (keyState[GLUT_KEY_UP] && keyState[GLUT_KEY_LEFT]) {
+        // Simultaneous Up and Left arrow key presses for Player 2
+        // Move Player 2 diagonally up-left
+    }
+    else if (keyState[GLUT_KEY_UP] && keyState[GLUT_KEY_RIGHT]) {
+        // Simultaneous Up and Right arrow key presses for Player 2
+        // Move Player 2 diagonally up-right
+    }
+    else if (keyState[GLUT_KEY_DOWN] && keyState[GLUT_KEY_LEFT]) {
+        // Simultaneous Down and Left arrow key presses for Player 2
+        // Move Player 2 diagonally down-left
+    }
+    else if (keyState[GLUT_KEY_DOWN] && keyState[GLUT_KEY_RIGHT]) {
+        // Simultaneous Down and Right arrow key presses for Player 2
+        // Move Player 2 diagonally down-right
+    }
+    else if (keyState[GLUT_KEY_UP]) {
+        // Only Up arrow key is held for Player 2
+        // Move Player 2 up
+    }
+    else if (keyState[GLUT_KEY_DOWN]) {
+        // Only Down arrow key is held for Player 2
+        // Move Player 2 down
+    }
+    else if (keyState[GLUT_KEY_LEFT]) {
+        // Only Left arrow key is held for Player 2
+        // Move Player 2 left
+    }
+    else if (keyState[GLUT_KEY_RIGHT]) {
+        // Only Right arrow key is held for Player 2
+        // Move Player 2 right
+    }
+
+    // Player 1 shooting
+    if (keyState['f']) {
+        // 'f' key is held for Player 1
+        // Perform shooting action for Player 1
+    }
+
+    // Player 2 shooting
+    if (keyState['l']) {
+        // 'l' key is held for Player 2
+        // Perform shooting action for Player 2
+    }
+
+    // Player 1 jumping
+    if (keyState[32]) {
+        // Space key is held for Player 1
+        // Perform jumping action for Player 1
+    }
+
+    // Player 2 jumping
+    if (keyState['k']) {
+        // 'k' key is held for Player 2
+        // Perform jumping action for Player 2
+    }
+
+    // Player 1 ball stealing
+    if (keyState['r']) {
+        // 'r' key is held for Player 1
+        // Perform ball stealing action for Player 1
+    }
+
+    // Player 2 ball stealing
+    if (keyState['j']) {
+        // 'j' key is held for Player 2
+        // Perform ball stealing action for Player 2
+    }
+}
 void timer(int value) {
     handleInput();
-    printf("X:%f, Y:%f\n", player1X, player1Y);
+    //printf("X:%f, Y:%f\n", player1X, player1Y);
     //printf("shotFired: %d, shootKeyHeld: %d\n", shotFired, shootKeyHeld);
     if (ballX - ballRadius < Xmin || ballX + ballRadius > Xmax) {
         ballSpeedX = -ballSpeedX; // Reverse the ball's horizontal velocity
@@ -584,17 +689,16 @@ void timer(int value) {
 }
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 
     glutInitWindowPosition(10, 60);
     glutInitWindowSize(Xmax, Ymax);
 
-    glutCreateWindow("Kolokvijum_ime_prezime");
+    glutCreateWindow("Basketball");
     playerTexture = loadTexture("C:/Users/datcha/source/repos/failaip12/Projekat-Grafika/Projekat/pics/1.png");
     if (playerTexture == 0) {
         return 1;
     }
-    //preimenovati u Kolokvijum_ime_prezime (npr. Kolokvijum_Tijana_Sustersic)
 
     initRendering();
 
