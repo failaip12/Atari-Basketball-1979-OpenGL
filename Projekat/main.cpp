@@ -125,7 +125,7 @@ public:
                 ballPossesion = false;
                 ballHeld = false;
                 shootStrength = 0.0;
-                printf("X:%f, Y:%f\n", ballSpeedX, ballSpeedY);
+                //printf("X:%f, Y:%f\n", ballSpeedX, ballSpeedY);
             }
         }
     }
@@ -207,19 +207,27 @@ GLuint loadTexture(const char* filename) {
 
 
 
-bool checkPlayerBallCollision(float playerX, float playerY, float ballX, float ballY, float playerWidth, float playerHeight, float ballRadius)
+bool checkPlayerBallCollision(float playerX, float playerY, float ballX, float ballY, float playerWidth, float playerHeight, float ballRadius, bool flipped)
 {
     // Calculate the boundaries of the player rectangle
-    float playerLeft = playerX - playerWidth / 2;
-    float playerRight = playerX + playerWidth / 2;
+
     float playerTop = playerY - playerHeight / 2;
     float playerBottom = playerY + playerHeight / 2;
-
+    float playerLeft;
+    float playerRight;
+    if (!flipped) {
+        playerLeft = playerX - playerWidth / 2;
+        playerRight = playerX + playerWidth / 2;
+    }
+    else {
+        playerLeft = playerX + playerWidth / 2;
+        playerRight = playerX - playerWidth / 2;
+    }
     // Calculate the boundaries of the ball rectangle
-    float ballLeft = ballX - ballRadius;
-    float ballRight = ballX + ballRadius;
     float ballTop = ballY - ballRadius;
     float ballBottom = ballY + ballRadius;
+    float ballLeft = ballX - ballRadius;
+    float ballRight = ballX + ballRadius;
 
     // Check for overlap between the rectangles
     if (playerLeft <= ballRight && playerRight >= ballLeft && playerTop <= ballBottom && playerBottom >= ballTop) {
@@ -645,8 +653,8 @@ void dribbleBall() {
 }
 
 void handlePlayerBallCollision(Player& player, Player& other, float& ballX, float& ballY) {
-    bool touched = checkPlayerBallCollision(player.getPositionX(), player.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius);
-    //printf("%d", touched);
+    bool touched = checkPlayerBallCollision(player.getPositionX(), player.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius, player.isFlipped());
+    printf("%d", touched);
 
     if (touched) {
         player.setBallPossesion(true);
@@ -690,7 +698,7 @@ void handleShooting(float& ballX, float& ballY, float& ballSpeedX, float& ballSp
 
 void timer(int value) {
     //printf("X:%f, Y:%f\n", player1X, player1Y);
-    printf("Player1 - flipped:%d, jumping: %d, shootKeyHeld: %d, ballPossesion: %d\n", player1.isFlipped(), player1.isJumping(), player1.getShootKeyHeld(), player1.getBallPossesion());
+    //printf("Player1 - flipped:%d, jumping: %d, shootKeyHeld: %d, ballPossesion: %d\n", player1.isFlipped(), player1.isJumping(), player1.getShootKeyHeld(), player1.getBallPossesion());
     //printf("Player2 - flipped:%d, jumping: %d, shootKeyHeld: %d, ballPossesion: %d\n", player2.isFlipped(), player2.isJumping(), player2.getShootKeyHeld(), player2.getBallPossesion());
     //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
     //printf("%d", shotFired);
