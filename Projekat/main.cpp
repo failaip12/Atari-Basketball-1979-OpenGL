@@ -13,12 +13,13 @@ const double WINDOW_HEIGHT = 672.0;
 
 const double courtdownY = WINDOW_HEIGHT / 7;
 const double courtupY = WINDOW_HEIGHT - WINDOW_HEIGHT / 4;
+const double courtCenterY = (courtupY + courtdownY) / 2;
 
 static int scoreP1 = 0;
 static int scoreP2 = 0;
 
 static float ballX = WINDOW_WIDTH / 2;
-static float ballY = WINDOW_HEIGHT / 2;
+static float ballY = courtCenterY;
 const float ballRadius = 6;
 static float ballSpeedX = 0.0;
 static float ballSpeedY = 0.0;
@@ -35,7 +36,8 @@ static bool ballInRange = false;
 static time_t startTime;
 static int countdownMinutes = 10;
 
-GLuint playerTexture;
+GLuint player1Texture;
+GLuint player2Texture;
 
 const int pole_height = 154;
 
@@ -73,8 +75,8 @@ private:
     float shootStrength;
 
 public:
-    Player(float initialX, float initialY)
-        : posX(initialX), posY(initialY), flipped(false), jumping(false),
+    Player(float initialX, float initialY, bool flipped)
+        : posX(initialX), posY(initialY), flipped(flipped), jumping(false),
         jumpStartTime(0.0), jumpStartY(0.0), shootKeyHeld(false), ballPossesion(false), shootStrength(0.0) {}
 
     float getPositionX() const { return posX; }
@@ -87,6 +89,7 @@ public:
     bool getBallPossesion() const { return ballPossesion; }
     float getShootStrength() const { return shootStrength; }
 
+    void setPositionX(float newX) { posX = newX; }
     void setPositionY(float newY) { posY = newY; }
     void setFlipped(bool isFlipped) { flipped = isFlipped; }
     void setJumping(bool isJumping) { jumping = isJumping; }
@@ -133,8 +136,8 @@ public:
 
 };
 
-Player player1(WINDOW_WIDTH / 2 + 100, WINDOW_HEIGHT / 2 + 100);
-Player player2(100, 100);
+Player player1(hoopLeftRimX - 28, courtCenterY, false);
+Player player2(hoopRightRimX - 80, courtCenterY, true);
 
 struct Movement {
     char key[2];
@@ -351,9 +354,10 @@ void drawBall(float x_offset, float y_offset) {
     drawCircle(GL_POLYGON, x_offset, y_offset, ballRadius);
 }
 
-void drawPlayer(float x_offset, float y_offset, bool flipped) {
+void drawPlayer(GLuint playerTexture, float x_offset, float y_offset, bool flipped) {
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, playerTexture);
+    glPushMatrix();
     glBegin(GL_QUADS);
     glTexCoord2f(flipped, 1.0);
     glVertex2f(x_offset, playerHeight + y_offset);
@@ -364,6 +368,7 @@ void drawPlayer(float x_offset, float y_offset, bool flipped) {
     glTexCoord2f(!flipped, 1.0);
     glVertex2f(playerWidth + x_offset, playerHeight + y_offset);
     glEnd();
+    glPopMatrix();
     glDisable(GL_TEXTURE_2D);
 }
 
@@ -440,8 +445,8 @@ void drawScene() {
     drawScore();
     drawStaticElements();
     drawBall(ballX, ballY + jump_offset);
-    drawPlayer(player1.getPositionX(), player1.getPositionY(), player1.isFlipped());
-    drawPlayer(player2.getPositionX(), player2.getPositionY(), player2.isFlipped());
+    drawPlayer(player1Texture, player1.getPositionX(), player1.getPositionY(), player1.isFlipped());
+    drawPlayer(player2Texture, player2.getPositionX(), player2.getPositionY(), player2.isFlipped());
     glutSwapBuffers();
     glutPostRedisplay();
 }
@@ -622,18 +627,43 @@ void screenColision() {
     }
 }
 
+void resetP1Scored() {
+    player1.setPositionX((WINDOW_WIDTH / 2) - 80);
+    player1.setPositionY(courtCenterY);
+    player1.setBallPossesion(false);
+    shotFired = false;
+
+    player2.setPositionX(hoopRightRimX - 80);
+    player2.setPositionY(courtCenterY);
+    player2.setBallPossesion(true);
+}
+
+void resetP2Scored() {
+    player1.setPositionX(hoopLeftRimX + 5);
+    player1.setPositionY(courtCenterY);
+    player1.setBallPossesion(true);
+    player1.setFlipped(false);
+    shotFired = false;
+
+    player2.setPositionX((WINDOW_WIDTH / 2) - 15);
+    player2.setPositionY(courtCenterY);
+    player2.setBallPossesion(false);
+}
+
 void checkIfScored() {
     ballInRange = (ballY - ballRadius < hoopRimY + hoopRimRadius) && (ballY + ballRadius > hoopRimY - hoopRimRadius);
     if (ballInRange) {
         float distanceToLeftRim = abs(ballX - hoopLeftRimX);
         if (distanceToLeftRim < hoopRimRadius && !ballPassedThrough) {
-            scoreP1 += 1;
+            scoreP2 += 1;
+            resetP2Scored();
             ballPassedThrough = true;
         }
 
         float distanceToRightRim = abs(ballX - hoopRightRimX);
         if (distanceToRightRim < hoopRimRadius && !ballPassedThrough) {
-            scoreP2 += 1;
+            scoreP1 += 1;
+            resetP1Scored();
             ballPassedThrough = true;
         }
     }
@@ -740,8 +770,9 @@ int main(int argc, char** argv) {
     glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     glutCreateWindow("Basketball");
-    playerTexture = loadTexture("C:/Users/datcha/source/repos/failaip12/Projekat-Grafika/Projekat/pics/1.png");
-    if (playerTexture == 0) {
+    player1Texture = loadTexture("C:/Users/datcha/source/repos/failaip12/Projekat-Grafika/Projekat/pics/1.png");
+    player2Texture = loadTexture("C:/Users/datcha/source/repos/failaip12/Projekat-Grafika/Projekat/pics/2.png");
+    if (player1Texture == 0 || player2Texture == 0) {
         return 1;
     }
 
