@@ -50,7 +50,6 @@ static float jump_offset;
 static float gravity = 0.1;
 
 static bool shotFired = false;
-static float shootStrength = 0.0;
 
 
 static bool keyState[256] = { false };
@@ -69,21 +68,23 @@ private:
     float jumpStartY;
     bool shootKeyHeld;
     bool ballPossesion;
+    float shootStrength;
 
 public:
     Player(float initialX, float initialY)
         : posX(initialX), posY(initialY), flipped(false), jumping(false),
-        jumpStartTime(0.0), jumpStartY(0.0), shootKeyHeld(false), ballPossesion(false) {}
+        jumpStartTime(0.0), jumpStartY(0.0), shootKeyHeld(false), ballPossesion(false), shootStrength(0.0) {}
 
-    // Getters and setters
     float getPositionX() const { return posX; }
     float getPositionY() const { return posY; }
-    float getJumpStartTime() const { return jumpStartTime; }
-    float getJumpStartY() const { return jumpStartY; }
     bool isFlipped() const { return flipped; }
     bool isJumping() const { return jumping; }
+    float getJumpStartTime() const { return jumpStartTime; }
+    float getJumpStartY() const { return jumpStartY; }
     bool getShootKeyHeld() const { return shootKeyHeld; }
     bool getBallPossesion() const { return ballPossesion; }
+    float getShootStrength() const { return shootStrength; }
+
     void setPositionY(float newY) { posY = newY; }
     void setFlipped(bool isFlipped) { flipped = isFlipped; }
     void setJumping(bool isJumping) { jumping = isJumping; }
@@ -91,13 +92,44 @@ public:
     void setJumpStartY(float startY) { jumpStartY = startY; }
     void setShootKeyHeld(bool shootHeld) { shootKeyHeld = shootHeld; }
     void setBallPossesion(bool possesion) { ballPossesion = possesion; }
+    void setShootStrength(float strength) { shootStrength = strength; }
 
     void move(float deltaX, float deltaY) {
         posX += deltaX;
         posY += deltaY;
     }
 
-    // Other methods specific to player behavior can be added here
+    void shootBall(float shotStrength) {
+        if(ballPossesion) {
+            if (!shotFired) {
+                float minSpeed = 1.0;
+                float maxSpeed = 10.0;
+                float minAngle = 45.0;
+                float maxAngle = 75.0;
+
+                float shotSpeed = minSpeed + (shotStrength * (maxSpeed - minSpeed));
+                shotSpeed = fminf(fmaxf(shotSpeed, minSpeed), maxSpeed);
+
+                float shotAngle = minAngle + (shotStrength * (maxAngle - minAngle));
+                shotAngle = fminf(fmaxf(shotAngle, minAngle), maxAngle);
+
+                float radians = shotAngle * M_PI / 180.0;
+                if (!flipped) {
+                    ballSpeedX = fabsf(shotSpeed * cosf(radians));
+                }
+                else {
+                    ballSpeedX = -fabsf(shotSpeed * cosf(radians));
+                }
+                ballSpeedY = fabsf(shotSpeed * sinf(radians));
+                shotFired = true;
+                ballPossesion = false;
+                ballHeld = false;
+                shootStrength = 0.0;
+                printf("X:%f, Y:%f\n", ballSpeedX, ballSpeedY);
+            }
+        }
+    }
+
 };
 
 Player player1(WINDOW_WIDTH / 2 + 100, WINDOW_HEIGHT / 2 + 100);
@@ -173,33 +205,7 @@ GLuint loadTexture(const char* filename) {
     return textureID;
 }
 
-void shootBall(float shotStrength) {
-    if (!shotFired) {
-        float minSpeed = 1.0;
-        float maxSpeed = 10.0;
-        float minAngle = 45.0;
-        float maxAngle = 75.0;
 
-        float shotSpeed = minSpeed + (shotStrength * (maxSpeed - minSpeed));
-        shotSpeed = fminf(fmaxf(shotSpeed, minSpeed), maxSpeed);
-
-        float shotAngle = minAngle + (shotStrength * (maxAngle - minAngle));
-        shotAngle = fminf(fmaxf(shotAngle, minAngle), maxAngle);
-
-        float radians = shotAngle * M_PI / 180.0;
-        if (!player1.isFlipped()) {
-            ballSpeedX = fabsf(shotSpeed * cosf(radians));
-        }
-        else {
-            ballSpeedX = -fabsf(shotSpeed * cosf(radians));
-        }
-        ballSpeedY = fabsf(shotSpeed * sinf(radians));
-        shotFired = true;
-        ballHeld = false;
-        shootStrength = 0.0;
-        //printf("X:%f, Y:%f\n", ballSpeedX, ballSpeedY);
-    }
-}
 
 bool checkPlayerBallCollision(float playerX, float playerY, float ballX, float ballY, float playerWidth, float playerHeight, float ballRadius)
 {
@@ -525,7 +531,7 @@ void handleInput() {
     if (!keyState['f'] && !keyState['F'] && player1.getShootKeyHeld()) {
         player1.setShootKeyHeld(false);
         if (!shotFired) {
-            shootBall(shootStrength);
+            player1.shootBall(player1.getShootStrength());
         }
     }
 
@@ -537,7 +543,7 @@ void handleInput() {
     if (!keyState['p'] && !keyState['P'] && player2.getShootKeyHeld()) {
         player2.setShootKeyHeld(false);
         if (!shotFired) {
-            shootBall(shootStrength);
+            player2.shootBall(player2.getShootStrength());
         }
     }
 
@@ -554,7 +560,7 @@ void handleInput() {
 
     // Player 2 jumping
     if (keyState['[']) {
-        if (!player1.getBallPossesion()) {
+        if (!player2.getBallPossesion()) {
             if (!player2.isJumping()) {
                 player2.setJumping(true);
                 player2.setJumpStartTime(static_cast<float>(clock()));
@@ -638,12 +644,13 @@ void dribbleBall() {
     }
 }
 
-void handlePlayerBallCollision(Player& player, float& ballX, float& ballY) {
+void handlePlayerBallCollision(Player& player, Player& other, float& ballX, float& ballY) {
     bool touched = checkPlayerBallCollision(player.getPositionX(), player.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius);
     //printf("%d", touched);
 
     if (touched) {
         player.setBallPossesion(true);
+        other.setBallPossesion(false);
         ballHeld = true;
         shotFired = false;
         ballY = player.getPositionY() + 40;
@@ -666,8 +673,9 @@ void handlePlayerBallCollision(Player& player, float& ballX, float& ballY) {
     }
 }
 
-void handleShooting(Player& player, float& ballX, float& ballY, float& ballSpeedX, float& ballSpeedY, bool& shotFired, float& shootStrength) {
+void handleShooting(float& ballX, float& ballY, float& ballSpeedX, float& ballSpeedY, bool& shotFired) {
     if (shotFired) {
+        //printf("ballX: %f, ballY: %f\n", ballX, ballY);
         ballY += ballSpeedY;
         ballX += ballSpeedX;
         ballSpeedY -= gravity;
@@ -678,25 +686,30 @@ void handleShooting(Player& player, float& ballX, float& ballY, float& ballSpeed
             shotFired = false;
         }
     }
-
-    if (player.getShootKeyHeld() && !shotFired) {
-        shootStrength += 0.035;
-    }
 }
 
 void timer(int value) {
     //printf("X:%f, Y:%f\n", player1X, player1Y);
-    //printf("shotFired: %d, shootKeyHeld: %d, ballHeld: %d\n", shotFired, shootKeyHeld, ballHeld);
+    printf("Player1 - flipped:%d, jumping: %d, shootKeyHeld: %d, ballPossesion: %d\n", player1.isFlipped(), player1.isJumping(), player1.getShootKeyHeld(), player1.getBallPossesion());
+    //printf("Player2 - flipped:%d, jumping: %d, shootKeyHeld: %d, ballPossesion: %d\n", player2.isFlipped(), player2.isJumping(), player2.getShootKeyHeld(), player2.getBallPossesion());
     //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
+    //printf("%d", shotFired);
 
-    handleShooting(player1, ballX, ballY, ballSpeedX, ballSpeedY, shotFired, shootStrength);
-    handleShooting(player2, ballX, ballY, ballSpeedX, ballSpeedY, shotFired, shootStrength);
+
+
+    if (player1.getShootKeyHeld() && !shotFired) {
+        player1.setShootStrength(player1.getShootStrength() + 0.035);
+    }
+    if (player2.getShootKeyHeld() && !shotFired) {
+        player2.setShootStrength(player2.getShootStrength() + 0.035);
+    }
+    handleShooting(ballX, ballY, ballSpeedX, ballSpeedY, shotFired);
     handleInput();
     handleJump(player1, jumpDuration, jumpHeight);
     handleJump(player2, jumpDuration, jumpHeight);
     checkBallCollision();
-    handlePlayerBallCollision(player1, ballX, ballY);
-    handlePlayerBallCollision(player2, ballX, ballY);
+    handlePlayerBallCollision(player1, player2, ballX, ballY);
+    handlePlayerBallCollision(player2, player1, ballX, ballY);
     screenColision();
     checkIfScored();
     dribbleBall();
