@@ -22,12 +22,14 @@ static float ballY = WINDOW_HEIGHT / 2;
 const float ballRadius = 6;
 static float ballSpeedX = 0.0;
 static float ballSpeedY = 0.0;
+static bool touched = false;
 
 const float hoopRimY = courtupY - 48;
 const float hoopLeftRimX = 68;
 const float hoopRightRimX = WINDOW_WIDTH - 68;
 const float hoopRimRadius = 12;
 static bool ballPassedThrough = false;
+static bool ballInRange = false;
 
 static time_t startTime;
 static int countdownMinutes = 10;
@@ -36,8 +38,6 @@ GLuint playerTexture;
 
 const int pole_height = 154;
 
-static float player1X = WINDOW_WIDTH / 2 + 100;
-static float player1Y = WINDOW_HEIGHT / 2 + 100;
 const int playerWidth = 120;
 const int playerHeight = 120;
 
@@ -50,28 +50,77 @@ static float jump_offset;
 static float gravity = 0.1;
 
 static bool shotFired = false;
-static bool shootKeyHeld = false;
 static float shootStrength = 0.0;
 
 
 static bool keyState[256] = { false };
 static bool specialKeyState[256] = { false };
 
+const float jumpDuration = 0.5;
+const float jumpHeight = 80.0;
+
+class Player {
+private:
+    float posX;
+    float posY;
+    bool flipped;
+    bool jumping;
+    float jumpStartTime;
+    float jumpStartY;
+    bool shootKeyHeld;
+    bool ballPossesion;
+
+public:
+    Player(float initialX, float initialY)
+        : posX(initialX), posY(initialY), flipped(false), jumping(false),
+        jumpStartTime(0.0), jumpStartY(0.0), shootKeyHeld(false), ballPossesion(false) {}
+
+    // Getters and setters
+    float getPositionX() const { return posX; }
+    float getPositionY() const { return posY; }
+    float getJumpStartTime() const { return jumpStartTime; }
+    float getJumpStartY() const { return jumpStartY; }
+    bool isFlipped() const { return flipped; }
+    bool isJumping() const { return jumping; }
+    bool getShootKeyHeld() const { return shootKeyHeld; }
+    bool getBallPossesion() const { return ballPossesion; }
+    void setPositionY(float newY) { posY = newY; }
+    void setFlipped(bool isFlipped) { flipped = isFlipped; }
+    void setJumping(bool isJumping) { jumping = isJumping; }
+    void setJumpStartTime(float time) { jumpStartTime = time; }
+    void setJumpStartY(float startY) { jumpStartY = startY; }
+    void setShootKeyHeld(bool shootHeld) { shootKeyHeld = shootHeld; }
+    void setBallPossesion(bool possesion) { ballPossesion = possesion; }
+
+    void move(float deltaX, float deltaY) {
+        posX += deltaX;
+        posY += deltaY;
+    }
+
+    // Other methods specific to player behavior can be added here
+};
+
+Player player1(WINDOW_WIDTH / 2 + 100, WINDOW_HEIGHT / 2 + 100);
+Player player2(100, 100);
+
 struct Movement {
     char key[2];
     float deltaY;
     float deltaX;
+    bool flipped;
 };
+
 Movement player1Movements[] = {
     {{'w', 'W'}, 4, 0},
-    {{'s', 'S'}, -4, 0},
-    {{'a', 'A'}, 0, -4},
+    {{'s', 'S'}, -4, 0, false},
+    {{'a', 'A'}, 0, -4, true},
     {{'d', 'D'}, 0, 4}
 };
+
 Movement player2Movements[] = {
     {{'i', 'I'}, 4, 0},
-    {{'k', 'K'}, -4, 0},
-    {{'j', 'J'}, 0, -4},
+    {{'k', 'K'}, -4, 0, false},
+    {{'j', 'J'}, 0, -4, true},
     {{'l', 'L'}, 0, 4}
 };
 
@@ -138,11 +187,17 @@ void shootBall(float shotStrength) {
         shotAngle = fminf(fmaxf(shotAngle, minAngle), maxAngle);
 
         float radians = shotAngle * M_PI / 180.0;
-
-        ballSpeedX = fabsf(shotSpeed * cosf(radians));
+        if (!player1.isFlipped()) {
+            ballSpeedX = fabsf(shotSpeed * cosf(radians));
+        }
+        else {
+            ballSpeedX = -fabsf(shotSpeed * cosf(radians));
+        }
         ballSpeedY = fabsf(shotSpeed * sinf(radians));
+        shotFired = true;
+        ballHeld = false;
         shootStrength = 0.0;
-        //printf("X:%f, Y:%f\n", shotSpeed, ballSpeedY);
+        //printf("X:%f, Y:%f\n", ballSpeedX, ballSpeedY);
     }
 }
 
@@ -276,7 +331,7 @@ void drawStaticElements() {
     //Hoop rim NEEDS FIXING
     glLineWidth(1.0f);
     glColor3fv(colors[WHITE]);
-    drawCircle(GL_LINE_LOOP, hoopRightRimX, hoopRimY, 12);
+    drawCircle(GL_LINE_LOOP, hoopRightRimX, hoopRimY, hoopRimRadius);
 }
 
 void drawBall(float x_offset, float y_offset) {
@@ -284,17 +339,17 @@ void drawBall(float x_offset, float y_offset) {
     drawCircle(GL_POLYGON, x_offset, y_offset, ballRadius);
 }
 
-void drawPlayer1(float x_offset, float y_offset) {
+void drawPlayer(float x_offset, float y_offset, bool flipped) {
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, playerTexture);
     glBegin(GL_QUADS);
-    glTexCoord2f(0.0, 1.0);
+    glTexCoord2f(flipped, 1.0);
     glVertex2f(x_offset, playerHeight + y_offset);
-    glTexCoord2f(0.0, 0.0);
+    glTexCoord2f(flipped, 0.0);
     glVertex2f(x_offset, y_offset);
-    glTexCoord2f(1.0, 0.0);
+    glTexCoord2f(!flipped, 0.0);
     glVertex2f(playerWidth + x_offset, y_offset);
-    glTexCoord2f(1.0, 1.0);
+    glTexCoord2f(!flipped, 1.0);
     glVertex2f(playerWidth + x_offset, playerHeight + y_offset);
     glEnd();
     glDisable(GL_TEXTURE_2D);
@@ -349,6 +404,7 @@ void myKeyboardFunc(unsigned char key, int x, int y)
 {
     keyState[key] = true;
 }
+
 void myKeyboardFuncUp(unsigned char key, int x, int y)
 {
     keyState[key] = false;
@@ -373,7 +429,8 @@ void drawScene() {
     drawScore();
     drawStaticElements();
     drawBall(ballX, ballY + jump_offset);
-    drawPlayer1(player1X, player1Y);
+    drawPlayer(player1.getPositionX(), player1.getPositionY(), player1.isFlipped());
+    drawPlayer(player2.getPositionX(), player2.getPositionY(), player2.isFlipped());
     glutSwapBuffers();
     glutPostRedisplay();
 }
@@ -422,13 +479,28 @@ void resizeWindow(int w, int h)
 
 }
 
+void handleJump(Player& player, float jumpDuration, float jumpHeight) {
+    if (player.isJumping()) {
+        float elapsedTime = static_cast<float>(clock() - player.getJumpStartTime()) / CLOCKS_PER_SEC;
+        if (elapsedTime <= jumpDuration) {
+            float t = elapsedTime / jumpDuration;
+            float jumpOffset = jumpHeight * 4.0 * t * (1.0 - t);
+            float newY = player.getJumpStartY() + jumpOffset;
+            player.setPositionY(newY);
+        }
+        else {
+            player.setJumping(false);
+        }
+    }
+}
+
 void handleInput() {
     // Player 1 movement
     for (const auto& movement : player1Movements) {
         for (const auto& key : movement.key) {
             if (keyState[key]) {
-                player1Y += movement.deltaY;
-                player1X += movement.deltaX;
+                player1.move(movement.deltaX, movement.deltaY);
+                player1.setFlipped(movement.flipped);
                 break;
             }
         }
@@ -438,8 +510,8 @@ void handleInput() {
     for (const auto& movement : player2Movements) {
         for (const auto& key : movement.key) {
             if (keyState[key]) {
-                ballY += movement.deltaY;
-                ballX += movement.deltaX;
+                player2.move(movement.deltaX, movement.deltaY);
+                player2.setFlipped(movement.flipped);
                 break;
             }
         }
@@ -447,35 +519,48 @@ void handleInput() {
 
     // Player 1 shooting
     if (keyState['f'] || keyState['F']) {
-        shootKeyHeld = true;
+        player1.setShootKeyHeld(true);
     }
     // Player 1 shooting release
-    if (!keyState['f'] && !keyState['F'] && shootKeyHeld) {
-        shootKeyHeld = false;
+    if (!keyState['f'] && !keyState['F'] && player1.getShootKeyHeld()) {
+        player1.setShootKeyHeld(false);
         if (!shotFired) {
             shootBall(shootStrength);
-            shotFired = true;
-            ballHeld = false;
         }
     }
 
-
     // Player 2 shooting
-    if (keyState['l']) {
-        // 'l' key is held for Player 2
-        // Perform shooting action for Player 2
+    if (keyState['p'] || keyState['P']) {
+        player2.setShootKeyHeld(true);
+    }
+    // Player 2 shooting release
+    if (!keyState['p'] && !keyState['P'] && player2.getShootKeyHeld()) {
+        player2.setShootKeyHeld(false);
+        if (!shotFired) {
+            shootBall(shootStrength);
+        }
     }
 
     // Player 1 jumping
     if (keyState[32]) {
-        // Space key is held for Player 1
-        // Perform jumping action for Player 1
+        if (!player1.getBallPossesion()) {
+            if (!player1.isJumping()) {
+                player1.setJumping(true);
+                player1.setJumpStartTime(static_cast<float>(clock()));
+                player1.setJumpStartY(player1.getPositionY());
+            }
+        }
     }
 
     // Player 2 jumping
-    if (keyState['k']) {
-        // 'k' key is held for Player 2
-        // Perform jumping action for Player 2
+    if (keyState['[']) {
+        if (!player1.getBallPossesion()) {
+            if (!player2.isJumping()) {
+                player2.setJumping(true);
+                player2.setJumpStartTime(static_cast<float>(clock()));
+                player2.setJumpStartY(player2.getPositionY());
+            }
+        }
     }
 
     // Player 1 ball stealing
@@ -493,11 +578,11 @@ void handleInput() {
 
 void checkBallCollision() {
     // Check collision with the backboard
-    if (ballY <= courtupY - 70 && ballY >= courtupY - 20) {
-
-        if (ballX >= 50 && ballX <= 70) {
+    if (ballY >= courtupY - 70 && ballY <= courtupY + 40) {
+        if ((ballX >= 50 && ballX <= 70) || (ballX >= (WINDOW_WIDTH - 70) && ballX <= (WINDOW_WIDTH - 50))) {
             // Ball collided with the backboard
-            ballSpeedX *= -1; // Reverse the horizontal direction of the ball
+            ballSpeedX *= -0.5; // Reverse the horizontal direction of the ball
+            ballSpeedY *= -0.5; // Reverse the vertical direction of the ball
         }
     }
 
@@ -508,18 +593,12 @@ void checkBallCollision() {
 
     if (distanceToRim <= hoopRimRadius + ballRadius) {
         // Ball collided with the rim
-        ballSpeedX *= -1; // Reverse the horizontal direction of the ball
-        ballSpeedY *= -1; // Reverse the vertical direction of the ball
+        ballSpeedX *= -0.7; // Reverse the horizontal direction of the ball
+        ballSpeedY *= -0.7; // Reverse the vertical direction of the ball
     }
 }
 
-void timer(int value) {
-    //printf("X:%f, Y:%f\n", player1X, player1Y);
-    //printf("shotFired: %d, shootKeyHeld: %d\n", shotFired, shootKeyHeld);
-    //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
-    handleInput();
-    checkBallCollision();
-
+void screenColision() {
     if (ballX - ballRadius < 0.0 || ballX + ballRadius > WINDOW_WIDTH) {
         ballSpeedX = -ballSpeedX;
     }
@@ -527,47 +606,10 @@ void timer(int value) {
     if (ballY - ballRadius < 0.0 || ballY + ballRadius > WINDOW_HEIGHT) {
         ballSpeedY = -ballSpeedY;
     }
+}
 
-    if (ballHeld) {
-        jump_offset = jumpAmplitude * sinf(2.0 * M_PI * jumpFrequency * time_ball);
-    }
-    else {
-        jump_offset = 0.0;
-    }
-
-    if (shotFired) {
-        ballX += ballSpeedX;
-        ballY += ballSpeedY;
-        ballSpeedY -= gravity;
-
-        if (ballY - ballRadius <= 0.0) {
-            ballSpeedX = 0.0f;
-            ballSpeedY = 0.0f;
-            shotFired = false;
-        }
-    }
-
-    if (shootKeyHeld && !shotFired) {
-        shootStrength += 0.035;
-    }
-
-    time_ball += TIME_INCREMENT;
-
-    bool ballInRange = (ballY - ballRadius < hoopRimY + hoopRimRadius) && (ballY + ballRadius > hoopRimY - hoopRimRadius);
-    bool touched = checkPlayerBallCollision(player1X, player1Y, ballX, ballY, playerWidth, playerHeight, ballRadius);
-
-    if (touched) {
-        ballHeld = true;
-        shotFired = false;
-        ballX = player1X + 70;
-        ballY = player1Y + 40;
-    }
-
-    if (ballHeld) {
-        ballX = player1X + 70;
-        ballY = player1Y + 40;
-    }
-
+void checkIfScored() {
+    ballInRange = (ballY - ballRadius < hoopRimY + hoopRimRadius) && (ballY + ballRadius > hoopRimY - hoopRimRadius);
     if (ballInRange) {
         float distanceToLeftRim = abs(ballX - hoopLeftRimX);
         if (distanceToLeftRim < hoopRimRadius && !ballPassedThrough) {
@@ -585,6 +627,81 @@ void timer(int value) {
     if (!ballInRange) {
         ballPassedThrough = false;
     }
+}
+
+void dribbleBall() {
+    if (ballHeld) {
+        jump_offset = jumpAmplitude * sinf(2.0 * M_PI * jumpFrequency * time_ball);
+    }
+    else {
+        jump_offset = 0.0;
+    }
+}
+
+void handlePlayerBallCollision(Player& player, float& ballX, float& ballY) {
+    bool touched = checkPlayerBallCollision(player.getPositionX(), player.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius);
+    //printf("%d", touched);
+
+    if (touched) {
+        player.setBallPossesion(true);
+        ballHeld = true;
+        shotFired = false;
+        ballY = player.getPositionY() + 40;
+        if (!player.isFlipped()) {
+            ballX = player.getPositionX() + 70;
+        }
+        else {
+            ballX = player.getPositionX() + 50;
+        }
+    }
+
+    if (player.getBallPossesion()) {
+        ballY = player.getPositionY() + 40;
+        if (!player.isFlipped()) {
+            ballX = player.getPositionX() + 70;
+        }
+        else {
+            ballX = player.getPositionX() + 50;
+        }
+    }
+}
+
+void handleShooting(Player& player, float& ballX, float& ballY, float& ballSpeedX, float& ballSpeedY, bool& shotFired, float& shootStrength) {
+    if (shotFired) {
+        ballY += ballSpeedY;
+        ballX += ballSpeedX;
+        ballSpeedY -= gravity;
+
+        if (ballY - ballRadius <= 0.0) {
+            ballSpeedX = 0.0f;
+            ballSpeedY = 0.0f;
+            shotFired = false;
+        }
+    }
+
+    if (player.getShootKeyHeld() && !shotFired) {
+        shootStrength += 0.035;
+    }
+}
+
+void timer(int value) {
+    //printf("X:%f, Y:%f\n", player1X, player1Y);
+    //printf("shotFired: %d, shootKeyHeld: %d, ballHeld: %d\n", shotFired, shootKeyHeld, ballHeld);
+    //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
+
+    handleShooting(player1, ballX, ballY, ballSpeedX, ballSpeedY, shotFired, shootStrength);
+    handleShooting(player2, ballX, ballY, ballSpeedX, ballSpeedY, shotFired, shootStrength);
+    handleInput();
+    handleJump(player1, jumpDuration, jumpHeight);
+    handleJump(player2, jumpDuration, jumpHeight);
+    checkBallCollision();
+    handlePlayerBallCollision(player1, ballX, ballY);
+    handlePlayerBallCollision(player2, ballX, ballY);
+    screenColision();
+    checkIfScored();
+    dribbleBall();
+
+    time_ball += TIME_INCREMENT;
 
     glutPostRedisplay();
     glutTimerFunc(16, timer, 0);
@@ -603,6 +720,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    startTime = time(NULL);
     initRendering();
 
     glutKeyboardFunc(myKeyboardFunc);
@@ -615,7 +733,6 @@ int main(int argc, char** argv) {
     glutDisplayFunc(drawScene);
 
     glutTimerFunc(0, timer, 0);
-    startTime = time(NULL);
 
     glutMainLoop();
 
