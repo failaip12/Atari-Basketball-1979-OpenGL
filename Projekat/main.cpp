@@ -22,7 +22,8 @@ static float ballY = WINDOW_HEIGHT / 2;
 const float ballRadius = 6;
 static float ballSpeedX = 0.0;
 static float ballSpeedY = 0.0;
-static bool touched = false;
+static bool touchedP1 = false;
+static bool touchedP2 = false;
 
 const float hoopRimY = courtupY - 48;
 const float hoopLeftRimX = 68;
@@ -43,7 +44,7 @@ const int playerHeight = 120;
 
 static bool ballHeld = false;
 static float jumpAmplitude = 19.0;
-static float jumpFrequency = 5.0;
+static float jumpFrequency = 7.0;
 static float time_ball = 0.0;
 const float TIME_INCREMENT = 0.01;
 static float jump_offset;
@@ -54,6 +55,9 @@ static bool shotFired = false;
 
 static bool keyState[256] = { false };
 static bool specialKeyState[256] = { false };
+
+static bool player1StealButtonPressed = false;
+static bool player2StealButtonPressed = false;
 
 const float jumpDuration = 0.5;
 const float jumpHeight = 80.0;
@@ -434,7 +438,6 @@ void mySpecialKeyFuncUp(int key, int x, int y)
     specialKeyState[key] = false;
 }
 
-
 void drawScene() {
     glClearColor(0.4609375, 0.4609375, 0.46484375, 0.0);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -579,14 +582,18 @@ void handleInput() {
 
     // Player 1 ball stealing
     if (keyState['r']) {
-        // 'r' key is held for Player 1
-        // Perform ball stealing action for Player 1
+        player1StealButtonPressed = true;
+    }
+    else {
+        player1StealButtonPressed = false;
     }
 
     // Player 2 ball stealing
-    if (keyState['j']) {
-        // 'j' key is held for Player 2
-        // Perform ball stealing action for Player 2
+    if (keyState[';']) {
+        player2StealButtonPressed = true;
+    }
+    else {
+        player2StealButtonPressed = false;
     }
 }
 
@@ -652,31 +659,56 @@ void dribbleBall() {
     }
 }
 
-void handlePlayerBallCollision(Player& player, Player& other, float& ballX, float& ballY) {
-    bool touched = checkPlayerBallCollision(player.getPositionX(), player.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius, player.isFlipped());
-    printf("%d", touched);
+void handlePlayerBallCollision(float& ballX, float& ballY) {
+    touchedP1 = checkPlayerBallCollision(player1.getPositionX(), player1.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius, player1.isFlipped());
+    touchedP2 = checkPlayerBallCollision(player2.getPositionX(), player2.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius, player2.isFlipped());
+    printf("P1: %d, P2: %d\n", touchedP1, touchedP2);
 
-    if (touched) {
-        player.setBallPossesion(true);
-        other.setBallPossesion(false);
+    if (!player1.getBallPossesion() && !player2.getBallPossesion() && touchedP1) {
+        // No one has possession of the ball, and collision occurred
+        player1.setBallPossesion(true);
+        player2.setBallPossesion(false);
         ballHeld = true;
-        shotFired = false;
-        ballY = player.getPositionY() + 40;
-        if (!player.isFlipped()) {
-            ballX = player.getPositionX() + 70;
-        }
-        else {
-            ballX = player.getPositionX() + 50;
-        }
+        // Rest of the code...
+    }
+    else if (!player1.getBallPossesion() && !player2.getBallPossesion() && touchedP2) {
+        // Player 1 has possession, pressed steal button, and collision occurred
+        player1.setBallPossesion(false);
+        player2.setBallPossesion(true);
+        ballHeld = true;
+        // Rest of the code...
+    }
+    else if (player1.getBallPossesion() && player2StealButtonPressed && touchedP2) {
+        // Player 1 has possession, pressed steal button, and collision occurred
+        player1.setBallPossesion(false);
+        player2.setBallPossesion(true);
+        ballHeld = true;
+        // Rest of the code...
+    }
+    else if (player2.getBallPossesion() && player1StealButtonPressed && touchedP1) {
+        // Player 1 has possession, pressed steal button, and collision occurred
+        player1.setBallPossesion(true);
+        player2.setBallPossesion(false);
+        ballHeld = true;
+        // Rest of the code...
     }
 
-    if (player.getBallPossesion()) {
-        ballY = player.getPositionY() + 40;
-        if (!player.isFlipped()) {
-            ballX = player.getPositionX() + 70;
+    if (player1.getBallPossesion()) {
+        ballY = player1.getPositionY() + 40;
+        if (!player1.isFlipped()) {
+            ballX = player1.getPositionX() + 70;
         }
         else {
-            ballX = player.getPositionX() + 50;
+            ballX = player1.getPositionX() + 50;
+        }
+    }
+    if (player2.getBallPossesion()) {
+        ballY = player2.getPositionY() + 40;
+        if (!player2.isFlipped()) {
+            ballX = player2.getPositionX() + 70;
+        }
+        else {
+            ballX = player2.getPositionX() + 50;
         }
     }
 }
@@ -703,8 +735,6 @@ void timer(int value) {
     //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
     //printf("%d", shotFired);
 
-
-
     if (player1.getShootKeyHeld() && !shotFired) {
         player1.setShootStrength(player1.getShootStrength() + 0.035);
     }
@@ -716,8 +746,7 @@ void timer(int value) {
     handleJump(player1, jumpDuration, jumpHeight);
     handleJump(player2, jumpDuration, jumpHeight);
     checkBallCollision();
-    handlePlayerBallCollision(player1, player2, ballX, ballY);
-    handlePlayerBallCollision(player2, player1, ballX, ballY);
+    handlePlayerBallCollision(ballX, ballY);
     screenColision();
     checkIfScored();
     dribbleBall();
