@@ -42,7 +42,6 @@ const int pole_height = 154;
 const int playerWidth = 120;
 const int playerHeight = 120;
 
-static bool ballHeld = false;
 static float jumpAmplitude = 19.0;
 static float jumpFrequency = 7.0;
 static float time_ball = 0.0;
@@ -127,7 +126,6 @@ public:
                 ballSpeedY = fabsf(shotSpeed * sinf(radians));
                 shotFired = true;
                 ballPossesion = false;
-                ballHeld = false;
                 shootStrength = 0.0;
                 //printf("X:%f, Y:%f\n", ballSpeedX, ballSpeedY);
             }
@@ -651,7 +649,7 @@ void checkIfScored() {
 }
 
 void dribbleBall() {
-    if (ballHeld) {
+    if (player1.getBallPossesion() || player2.getBallPossesion()) {
         jump_offset = jumpAmplitude * sinf(2.0 * M_PI * jumpFrequency * time_ball);
     }
     else {
@@ -668,28 +666,24 @@ void handlePlayerBallCollision(float& ballX, float& ballY) {
         // No one has possession of the ball, and collision occurred
         player1.setBallPossesion(true);
         player2.setBallPossesion(false);
-        ballHeld = true;
         // Rest of the code...
     }
     else if (!player1.getBallPossesion() && !player2.getBallPossesion() && touchedP2) {
         // Player 1 has possession, pressed steal button, and collision occurred
         player1.setBallPossesion(false);
         player2.setBallPossesion(true);
-        ballHeld = true;
         // Rest of the code...
     }
     else if (player1.getBallPossesion() && player2StealButtonPressed && touchedP2) {
         // Player 1 has possession, pressed steal button, and collision occurred
         player1.setBallPossesion(false);
         player2.setBallPossesion(true);
-        ballHeld = true;
         // Rest of the code...
     }
     else if (player2.getBallPossesion() && player1StealButtonPressed && touchedP1) {
         // Player 1 has possession, pressed steal button, and collision occurred
         player1.setBallPossesion(true);
         player2.setBallPossesion(false);
-        ballHeld = true;
         // Rest of the code...
     }
 
