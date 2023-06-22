@@ -631,11 +631,13 @@ void resetP1Scored() {
     player1.setPositionX((WINDOW_WIDTH / 2) - 80);
     player1.setPositionY(courtCenterY);
     player1.setBallPossesion(false);
+    player1.setFlipped(false);
     shotFired = false;
 
     player2.setPositionX(hoopRightRimX - 80);
     player2.setPositionY(courtCenterY);
     player2.setBallPossesion(true);
+    player2.setFlipped(true);
 }
 
 void resetP2Scored() {
@@ -648,6 +650,7 @@ void resetP2Scored() {
     player2.setPositionX((WINDOW_WIDTH / 2) - 15);
     player2.setPositionY(courtCenterY);
     player2.setBallPossesion(false);
+    player2.setFlipped(true);
 }
 
 void checkIfScored() {
