@@ -51,7 +51,6 @@ static float gravity = 0.1;
 
 static bool shotFired = false;
 
-
 static bool keyState[256] = { false };
 static bool specialKeyState[256] = { false };
 
@@ -106,7 +105,7 @@ public:
         if(ballPossesion) {
             if (!shotFired) {
                 float minSpeed = 1.0;
-                float maxSpeed = 10.0;
+                float maxSpeed = 15.0;
                 float minAngle = 45.0;
                 float maxAngle = 75.0;
 
@@ -207,8 +206,6 @@ GLuint loadTexture(const char* filename) {
     return textureID;
 }
 
-
-
 bool checkPlayerBallCollision(float playerX, float playerY, float ballX, float ballY, float playerWidth, float playerHeight, float ballRadius, bool flipped)
 {
     // Calculate the boundaries of the player rectangle
@@ -235,7 +232,6 @@ bool checkPlayerBallCollision(float playerX, float playerY, float ballX, float b
     if (playerLeft <= ballRight && playerRight >= ballLeft && playerTop <= ballBottom && playerBottom >= ballTop) {
         return true; // Player touched the ball
     }
-
     return false; // Player did not touch the ball
 }
 
@@ -599,9 +595,8 @@ void checkBallCollision() {
     // Check collision with the backboard
     if (ballY >= courtupY - 70 && ballY <= courtupY + 40) {
         if ((ballX >= 50 && ballX <= 70) || (ballX >= (WINDOW_WIDTH - 70) && ballX <= (WINDOW_WIDTH - 50))) {
-            // Ball collided with the backboard
-            ballSpeedX *= -0.5; // Reverse the horizontal direction of the ball
-            ballSpeedY *= -0.5; // Reverse the vertical direction of the ball
+            ballSpeedX *= -0.5;
+            ballSpeedY *= -0.5;
         }
     }
 
@@ -612,8 +607,8 @@ void checkBallCollision() {
 
     if (distanceToRim <= hoopRimRadius + ballRadius) {
         // Ball collided with the rim
-        ballSpeedX *= -0.7; // Reverse the horizontal direction of the ball
-        ballSpeedY *= -0.7; // Reverse the vertical direction of the ball
+        ballSpeedX *= -0.7;
+        ballSpeedY *= -0.7;
     }
 }
 
@@ -663,28 +658,24 @@ void handlePlayerBallCollision(float& ballX, float& ballY) {
     //printf("P1: %d, P2: %d\n", touchedP1, touchedP2);
 
     if (!player1.getBallPossesion() && !player2.getBallPossesion() && touchedP1) {
-        // No one has possession of the ball, and collision occurred
         player1.setBallPossesion(true);
         player2.setBallPossesion(false);
-        // Rest of the code...
+        shotFired = false;
     }
     else if (!player1.getBallPossesion() && !player2.getBallPossesion() && touchedP2) {
-        // Player 1 has possession, pressed steal button, and collision occurred
         player1.setBallPossesion(false);
         player2.setBallPossesion(true);
-        // Rest of the code...
+        shotFired = false;
     }
     else if (player1.getBallPossesion() && player2StealButtonPressed && touchedP2) {
-        // Player 1 has possession, pressed steal button, and collision occurred
         player1.setBallPossesion(false);
         player2.setBallPossesion(true);
-        // Rest of the code...
+        shotFired = false;
     }
     else if (player2.getBallPossesion() && player1StealButtonPressed && touchedP1) {
-        // Player 1 has possession, pressed steal button, and collision occurred
         player1.setBallPossesion(true);
         player2.setBallPossesion(false);
-        // Rest of the code...
+        shotFired = false;  
     }
 
     if (player1.getBallPossesion()) {
@@ -717,7 +708,7 @@ void timer(int value) {
     //printf("Player1 - flipped:%d, jumping: %d, shootKeyHeld: %d, ballPossesion: %d\n", player1.isFlipped(), player1.isJumping(), player1.getShootKeyHeld(), player1.getBallPossesion());
     //printf("Player2 - flipped:%d, jumping: %d, shootKeyHeld: %d, ballPossesion: %d\n", player2.isFlipped(), player2.isJumping(), player2.getShootKeyHeld(), player2.getBallPossesion());
     //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
-    printf("%d", shotFired);
+    //printf("%d", shotFired);
 
     if (player1.getShootKeyHeld() && !shotFired) {
         player1.setShootStrength(player1.getShootStrength() + 0.035);
