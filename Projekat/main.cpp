@@ -627,30 +627,22 @@ void screenColision() {
     }
 }
 
-void resetP1Scored() {
-    player1.setPositionX((WINDOW_WIDTH / 2) - 80);
-    player1.setPositionY(courtCenterY);
-    player1.setBallPossesion(false);
-    player1.setFlipped(false);
+void resetPlayer(Player& currentPlayer, float posX, float posY, bool ballPossession, bool flipped) {
+    currentPlayer.setPositionX(posX);
+    currentPlayer.setPositionY(posY);
+    currentPlayer.setBallPossesion(ballPossession);
+    currentPlayer.setFlipped(flipped);
     shotFired = false;
+}
 
-    player2.setPositionX(hoopRightRimX - 80);
-    player2.setPositionY(courtCenterY);
-    player2.setBallPossesion(true);
-    player2.setFlipped(true);
+void resetP1Scored() {
+    resetPlayer(player1, (WINDOW_WIDTH / 2) - 80, courtCenterY, false, false);
+    resetPlayer(player2, hoopRightRimX - 80, courtCenterY, true, true);
 }
 
 void resetP2Scored() {
-    player1.setPositionX(hoopLeftRimX + 5);
-    player1.setPositionY(courtCenterY);
-    player1.setBallPossesion(true);
-    player1.setFlipped(false);
-    shotFired = false;
-
-    player2.setPositionX((WINDOW_WIDTH / 2) - 15);
-    player2.setPositionY(courtCenterY);
-    player2.setBallPossesion(false);
-    player2.setFlipped(true);
+    resetPlayer(player1, hoopLeftRimX + 5, courtCenterY, true, false);
+    resetPlayer(player2, (WINDOW_WIDTH / 2) - 15, courtCenterY, false, true);
 }
 
 void checkIfScored() {
