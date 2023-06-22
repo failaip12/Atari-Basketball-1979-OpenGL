@@ -662,7 +662,7 @@ void dribbleBall() {
 void handlePlayerBallCollision(float& ballX, float& ballY) {
     touchedP1 = checkPlayerBallCollision(player1.getPositionX(), player1.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius, player1.isFlipped());
     touchedP2 = checkPlayerBallCollision(player2.getPositionX(), player2.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius, player2.isFlipped());
-    printf("P1: %d, P2: %d\n", touchedP1, touchedP2);
+    //printf("P1: %d, P2: %d\n", touchedP1, touchedP2);
 
     if (!player1.getBallPossesion() && !player2.getBallPossesion() && touchedP1) {
         // No one has possession of the ball, and collision occurred
@@ -695,21 +695,11 @@ void handlePlayerBallCollision(float& ballX, float& ballY) {
 
     if (player1.getBallPossesion()) {
         ballY = player1.getPositionY() + 40;
-        if (!player1.isFlipped()) {
-            ballX = player1.getPositionX() + 70;
-        }
-        else {
-            ballX = player1.getPositionX() + 50;
-        }
+        ballX = player1.getPositionX() + (player1.isFlipped() ? 50 : 70);
     }
     if (player2.getBallPossesion()) {
         ballY = player2.getPositionY() + 40;
-        if (!player2.isFlipped()) {
-            ballX = player2.getPositionX() + 70;
-        }
-        else {
-            ballX = player2.getPositionX() + 50;
-        }
+        ballX = player2.getPositionX() + (player2.isFlipped() ? 50 : 70);
     }
 }
 
@@ -733,7 +723,7 @@ void timer(int value) {
     //printf("Player1 - flipped:%d, jumping: %d, shootKeyHeld: %d, ballPossesion: %d\n", player1.isFlipped(), player1.isJumping(), player1.getShootKeyHeld(), player1.getBallPossesion());
     //printf("Player2 - flipped:%d, jumping: %d, shootKeyHeld: %d, ballPossesion: %d\n", player2.isFlipped(), player2.isJumping(), player2.getShootKeyHeld(), player2.getBallPossesion());
     //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
-    //printf("%d", shotFired);
+    printf("%d", shotFired);
 
     if (player1.getShootKeyHeld() && !shotFired) {
         player1.setShootStrength(player1.getShootStrength() + 0.035);
