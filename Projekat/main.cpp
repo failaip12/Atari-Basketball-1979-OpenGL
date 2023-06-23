@@ -405,8 +405,42 @@ void drawScore() {
     drawText(str_scoreP2, scoreP2X, scoreP2Y);
 }
 
-void handleEndGame() {
-    printf("GG");
+void resetPlayer(Player& currentPlayer, float posX, float posY, bool ballPossession, bool flipped) {
+    currentPlayer.setPositionX(posX);
+    currentPlayer.setPositionY(posY);
+    currentPlayer.setBallPossesion(ballPossession);
+    currentPlayer.setFlipped(flipped);
+    shotFired = false;
+}
+
+void restartGame() {
+    scoreP1 = 0;
+    scoreP2 = 0;
+
+    touchedP1 = false;
+    touchedP2 = false;
+
+    ballPassedThrough = false;
+    ballInRange = false;
+
+    ballX = WINDOW_WIDTH / 2;
+    ballY = courtCenterY;
+    ballSpeedX = 0.0;
+    ballSpeedY = 0.0;
+
+    shotFired = false;
+
+    for (int i = 0; i < 256; i++) {
+        keyState[i] = false;
+        specialKeyState[i] = false;
+    }
+
+    player1StealButtonPressed = false;
+    player2StealButtonPressed = false;
+    resetPlayer(player1, hoopLeftRimX - 28, courtCenterY, false, false);
+    resetPlayer(player2, hoopRightRimX - 80, courtCenterY, false, true);
+    startTime = time(NULL);
+    endGame = false;
 }
 
 void calculateAndDrawTime() {
@@ -446,30 +480,33 @@ void mySpecialKeyFuncUp(int key, int x, int y)
 }
 
 void drawScene() {
-    glClearColor(0.4609375, 0.4609375, 0.46484375, 0.0);
-    glClear(GL_COLOR_BUFFER_BIT);
+    if (!endGame) {
+        glClearColor(0.4609375, 0.4609375, 0.46484375, 0.0);
+        glClear(GL_COLOR_BUFFER_BIT);
 
-    calculateAndDrawTime();
-    drawScore();
-    drawStaticElements();
-    drawBall(ballX, ballY + jump_offset);
-    drawPlayer(player1Texture, player1.getPositionX(), player1.getPositionY(), player1.isFlipped());
-    drawPlayer(player2Texture, player2.getPositionX(), player2.getPositionY(), player2.isFlipped());
-    glutSwapBuffers();
-    glutPostRedisplay();
+        calculateAndDrawTime();
+        drawScore();
+        drawStaticElements();
+        drawBall(ballX, ballY + jump_offset);
+        drawPlayer(player1Texture, player1.getPositionX(), player1.getPositionY(), player1.isFlipped());
+        drawPlayer(player2Texture, player2.getPositionX(), player2.getPositionY(), player2.isFlipped());
+    }
 
     if (endGame) {
         glClear(GL_COLOR_BUFFER_BIT);
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, gameOverTexture);
-
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0, 0.0); glVertex2f(-0.5, -0.5);
-        glTexCoord2f(0.0, 1.0); glVertex2f(-0.5, 0.5);
-        glTexCoord2f(1.0, 1.0); glVertex2f(0.5, 0.5);
-        glTexCoord2f(1.0, 0.0); glVertex2f(0.5, -0.5);
-        glEnd();
+        if (scoreP1 > scoreP2) {
+            drawText("Player 1 WON", WINDOW_WIDTH / 2  - 50,WINDOW_HEIGHT / 2);
+        }
+        else if(scoreP1 < scoreP2) {
+            drawText("Player 2 WON", WINDOW_WIDTH / 2 - 50, WINDOW_HEIGHT / 2);
+        }
+        else {
+            drawText("ITS A DRAW", WINDOW_WIDTH / 2 - 50, WINDOW_HEIGHT / 2);
+        }
+        drawText("PRESS R TO RESTART", WINDOW_WIDTH / 2 - 50, WINDOW_HEIGHT / 2 -150);
     }
+
+    glutSwapBuffers();
 
 }
 
@@ -533,6 +570,11 @@ void handleJump(Player& player, float jumpDuration, float jumpHeight) {
 }
 
 void handleInput() {
+    if (endGame) {
+        if (keyState['r'] || keyState['R']) {
+            restartGame();
+        }
+    }
     // Player 1 movement
     for (const auto& movement : player1Movements) {
         for (const auto& key : movement.key) {
@@ -591,7 +633,7 @@ void handleInput() {
     }
 
     // Player 2 jumping
-    if (keyState['[']) {
+    if (keyState['['] || keyState['{']) {
         if (!player2.getBallPossesion()) {
             if (!player2.isJumping()) {
                 player2.setJumping(true);
@@ -602,7 +644,7 @@ void handleInput() {
     }
 
     // Player 1 ball stealing
-    if (keyState['r']) {
+    if (keyState['r'] || keyState['R']) {
         player1StealButtonPressed = true;
     }
     else {
@@ -610,7 +652,7 @@ void handleInput() {
     }
 
     // Player 2 ball stealing
-    if (keyState[';']) {
+    if (keyState[';'] || keyState[':']) {
         player2StealButtonPressed = true;
     }
     else {
@@ -647,14 +689,6 @@ void screenColision() {
     if (ballY - ballRadius < 0.0 || ballY + ballRadius > WINDOW_HEIGHT) {
         ballSpeedY = -ballSpeedY;
     }
-}
-
-void resetPlayer(Player& currentPlayer, float posX, float posY, bool ballPossession, bool flipped) {
-    currentPlayer.setPositionX(posX);
-    currentPlayer.setPositionY(posY);
-    currentPlayer.setBallPossesion(ballPossession);
-    currentPlayer.setFlipped(flipped);
-    shotFired = false;
 }
 
 void resetP1Scored() {
@@ -756,10 +790,8 @@ void timer(int value) {
     //printf("Player2 - flipped:%d, jumping: %d, shootKeyHeld: %d, ballPossesion: %d\n", player2.isFlipped(), player2.isJumping(), player2.getShootKeyHeld(), player2.getBallPossesion());
     //printf("ballSpeedX:%f, ballSpeedY:%f\n", ballSpeedX, ballSpeedY);
     //printf("%d", shotFired);
-    if (endGame) {
-        handleEndGame();
-    }
-    else {
+    if(!endGame)
+    {
         if (player1.getShootKeyHeld() && !shotFired) {
             player1.setShootStrength(player1.getShootStrength() + 0.035);
         }
@@ -767,7 +799,6 @@ void timer(int value) {
             player2.setShootStrength(player2.getShootStrength() + 0.035);
         }
         handleShooting(ballX, ballY, ballSpeedX, ballSpeedY, shotFired);
-        handleInput();
         handleJump(player1, jumpDuration, jumpHeight);
         handleJump(player2, jumpDuration, jumpHeight);
         checkBallCollision();
@@ -778,7 +809,7 @@ void timer(int value) {
 
         time_ball += TIME_INCREMENT;
     }
-
+    handleInput();
     glutPostRedisplay();
     glutTimerFunc(16, timer, 0);
 }
