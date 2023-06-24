@@ -564,6 +564,10 @@ void handleJump(Player& player, float jumpDuration, float jumpHeight) {
 }
 
 void handleInput() {
+    if (keyState[27]) {
+        glutDestroyWindow(glutGetWindow());
+        exit(0);
+    }
     if (endGame) {
         if (keyState['r'] || keyState['R']) {
             restartGame();
