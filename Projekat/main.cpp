@@ -814,9 +814,9 @@ int main(int argc, char** argv) {
     glutInitWindowPosition(10, 60);
     glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    glutCreateWindow("Basketball");
-    player1Texture = loadTexture("C:/Users/datcha/source/repos/failaip12/Projekat-Grafika/Projekat/pics/1.png");
-    player2Texture = loadTexture("C:/Users/datcha/source/repos/failaip12/Projekat-Grafika/Projekat/pics/2.png");
+    glutCreateWindow("Basketball_Filip_Stefanovic");
+    player1Texture = loadTexture("pics/1.png");
+    player2Texture = loadTexture("pics/2.png");
     if (player1Texture == 0 || player2Texture == 0) {
         return 1;
     }
