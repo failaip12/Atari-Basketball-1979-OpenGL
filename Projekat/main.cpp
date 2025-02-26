@@ -5,7 +5,12 @@
 #include <ctime>
 #include <vector>
 #include <string>
-#include "Glut.h"
+#include <GLES2/gl2.h>
+#include <GLFW/glfw3.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
 #include "stb_image.h"
 
 const double WINDOW_WIDTH = 768.0;
@@ -817,14 +822,28 @@ void timer(int value) {
     glutTimerFunc(16, timer, 0);
 }   
 
+void main_loop() {
+    // Move your main rendering logic here
+    handleInput();
+    calculateTimeRemaining();
+    drawScene();
+}
+
 int main(int argc, char** argv) {
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    // Initialize GLFW instead of GLUT
+    if (!glfwInit()) {
+        return 1;
+    }
 
-    glutInitWindowPosition(10, 60);
-    glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Basketball_Filip_Stefanovic", NULL, NULL);
+    if (!window) {
+        glfwTerminate();
+        return 1;
+    }
 
-    glutCreateWindow("Basketball_Filip_Stefanovic");
+    glfwMakeContextCurrent(window);
+
+    // Initialize your textures and other resources
     player1Texture = loadTexture("pics/1.png");
     player2Texture = loadTexture("pics/2.png");
     if (player1Texture == 0 || player2Texture == 0) {
@@ -834,16 +853,17 @@ int main(int argc, char** argv) {
     startTime = time(NULL);
     initRendering();
 
-    glutKeyboardFunc(myKeyboardFunc);
-    glutKeyboardUpFunc(myKeyboardFuncUp);
+    // Set up the main loop
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, 1);
+#else
+    while (!glfwWindowShouldClose(window)) {
+        main_loop();
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+#endif
 
-    glutReshapeFunc(resizeWindow);
-
-    glutDisplayFunc(drawScene);
-
-    glutTimerFunc(0, timer, 0);
-
-    glutMainLoop();
-
-    return(0);
+    glfwTerminate();
+    return 0;
 }
