@@ -702,6 +702,7 @@ void resetP2Scored() {
 }
 
 void checkIfScored() {
+    if (player1.getBallPossesion() || player2.getBallPossesion()) return;
     ballInRange = (ballY - ballRadius < hoopRimY + hoopRimRadius) && (ballY + ballRadius > hoopRimY - hoopRimRadius);
     if (ballInRange) {
         float distanceToLeftRim = abs(ballX - hoopLeftRimX);
