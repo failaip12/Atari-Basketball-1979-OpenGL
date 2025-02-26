@@ -465,11 +465,15 @@ void calculateTimeRemaining() {
 
 void myKeyboardFunc(unsigned char key, int x, int y)
 {
+    (void) x;
+    (void) y;
     keyState[key] = true;
 }
 
 void myKeyboardFuncUp(unsigned char key, int x, int y)
 {
+    (void) x;
+    (void) y;
     keyState[key] = false;
 }
 
@@ -785,6 +789,7 @@ void handleShooting(float& ballX, float& ballY, float& ballSpeedX, float& ballSp
 }
 
 void timer(int value) {
+    (void) value;
     if(!endGame)
     {
         if (player1.getShootKeyHeld() && !shotFired) {
