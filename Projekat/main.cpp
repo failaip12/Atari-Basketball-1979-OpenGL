@@ -509,13 +509,28 @@ void drawScene() {
     if (!endGame) {
         glClearColor(0.4609375, 0.4609375, 0.46484375, 0.0);
         glClear(GL_COLOR_BUFFER_BIT);
+        checkGLError("After clear");
+
+        // Try drawing a simple triangle first to test rendering
+        glColor3f(1.0, 0.0, 0.0);
+        glBegin(GL_TRIANGLES);
+        glVertex2f(100.0, 100.0);
+        glVertex2f(200.0, 100.0);
+        glVertex2f(150.0, 200.0);
+        glEnd();
+        checkGLError("After triangle");
 
         drawTime();
+        checkGLError("After time");
         drawScore();
+        checkGLError("After score");
         drawStaticElements();
+        checkGLError("After static elements");
         drawBall(ballX, ballY + jump_offset);
+        checkGLError("After ball");
         drawPlayer(player1Texture, player1.getPositionX(), player1.getPositionY(), player1.isFlipped());
         drawPlayer(player2Texture, player2.getPositionX(), player2.getPositionY(), player2.isFlipped());
+        checkGLError("After players");
     }
 
     if (endGame) {
@@ -533,11 +548,11 @@ void drawScene() {
     }
 
     glfwSwapBuffers(window);
-
+    checkGLError("After swap buffers");
 }
 
-void initRendering()
-{
+void initRendering() {
+    printf("Initializing rendering\n");
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_POINT_SMOOTH);
@@ -546,6 +561,7 @@ void initRendering()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.1f);
+    checkGLError("After initRendering");
 }
 
 void resizeWindow(int w, int h) {
@@ -840,43 +856,62 @@ void timer_callback(GLFWwindow* window) {
 }
 
 void main_loop() {
-    // Move your main rendering logic here
-    handleInput();
-    calculateTimeRemaining();
+    printf("Main loop running\n"); // Debug print
+    timer_callback(window);
     drawScene();
+    glfwPollEvents();
 }
 
 int main(int argc, char** argv) {
     if (!glfwInit()) {
+        printf("Failed to initialize GLFW\n");
         return 1;
     }
 
+#ifdef __EMSCRIPTEN__
+    // Set GL context attributes for WebGL
+    EmscriptenWebGLContextAttributes attrs;
+    emscripten_webgl_init_context_attributes(&attrs);
+    attrs.enableExtensionsByDefault = 1;
+    attrs.majorVersion = 1;
+    attrs.minorVersion = 0;
+#endif
+
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Basketball Game", NULL, NULL);
     if (!window) {
+        printf("Failed to create GLFW window\n");
         glfwTerminate();
         return 1;
     }
 
     glfwMakeContextCurrent(window);
+    printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
 
     // Initialize your textures and other resources
     player1Texture = loadTexture("pics/1.png");
     player2Texture = loadTexture("pics/2.png");
     if (player1Texture == 0 || player2Texture == 0) {
+        printf("Failed to load textures\n");
         return 1;
     }
 
     startTime = time(NULL);
     initRendering();
 
+    // Set up the viewport and projection matrix
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0.0, WINDOW_WIDTH, WINDOW_HEIGHT, 0.0, -1.0, 1.0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
 #ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop_arg((em_arg_callback_func)timer_callback, window, 0, 1);
+    printf("Setting up Emscripten main loop\n");
+    emscripten_set_main_loop(main_loop, 0, 1);
 #else
     while (!glfwWindowShouldClose(window)) {
-        timer_callback(window);
-        drawScene();
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        main_loop();
     }
 #endif
 
@@ -906,4 +941,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 void initInput(GLFWwindow* window) {
     glfwSetKeyCallback(window, key_callback);
+}
+
+void checkGLError(const char* label) {
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR) {
+        printf("OpenGL error at %s: 0x%04x\n", label, error);
+    }
 }
