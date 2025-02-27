@@ -551,12 +551,12 @@ void drawScene() {
 
 void initRendering() {
     printf("Initializing rendering\n");
+#ifndef __EMSCRIPTEN__
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    checkGLError("After line smooth");
     glEnable(GL_POINT_SMOOTH);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-    checkGLError("After point smooth");
+#endif // __EMSCRIPTEN__
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     checkGLError("After blend");
