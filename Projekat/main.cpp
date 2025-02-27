@@ -553,10 +553,13 @@ void initRendering() {
     printf("Initializing rendering\n");
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+    checkGLError("After line smooth");
     glEnable(GL_POINT_SMOOTH);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+    checkGLError("After point smooth");
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    checkGLError("After blend");
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.1f);
     checkGLError("After initRendering");
