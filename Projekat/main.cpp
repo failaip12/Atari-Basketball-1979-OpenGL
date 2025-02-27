@@ -15,10 +15,10 @@
 #include <GL/gl.h>  // This provides the legacy OpenGL functions
 #else
 #ifdef _WIN32
-#include <GL/glut.h>
+#include <GL/glfw.h>
 #else
 #include <GL/gl.h>
-#include <GL/glut.h>
+#include <GL/glfw.h>
 #endif
 #endif
 
@@ -398,8 +398,8 @@ void drawPlayer(GLuint playerTexture, float x, float y, bool flipped) {
 void drawText(const std::string& text, float x, float y) {
     for (char c : text) {
         glRasterPos2f(x, y);
-        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
-        x += glutBitmapWidth(GLUT_BITMAP_TIMES_ROMAN_24, c);
+        glfwBitmapCharacter(GLFW_BITMAP_TIMES_ROMAN_24, c);
+        x += glfwBitmapWidth(GLFW_BITMAP_TIMES_ROMAN_24, c);
     }
 }
 
@@ -521,7 +521,7 @@ void drawScene() {
         drawText("PRESS R TO RESTART", WINDOW_WIDTH / 2 - 50, WINDOW_HEIGHT / 2 -150);
     }
 
-    glutSwapBuffers();
+    glfwSwapBuffers();
 
 }
 
@@ -586,7 +586,7 @@ void handleJump(Player& player, float jumpDuration, float jumpHeight) {
 
 void handleInput() {
     if (keyState[27]) {
-        glutDestroyWindow(glutGetWindow());
+        glfwDestroyWindow(glfwGetWindow());
         exit(0);
     }
     if (endGame) {
@@ -830,8 +830,8 @@ void timer(int value) {
     }
     handleInput();
     calculateTimeRemaining();
-    glutPostRedisplay();
-    glutTimerFunc(16, timer, 0);
+    glfwPostRedisplay();
+    glfwTimerFunc(16, timer, 0);
 }   
 
 void main_loop() {
@@ -842,12 +842,11 @@ void main_loop() {
 }
 
 int main(int argc, char** argv) {
-    // Initialize GLFW instead of GLUT
     if (!glfwInit()) {
         return 1;
     }
 
-    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Basketball_Filip_Stefanovic", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Basketball Game", NULL, NULL);
     if (!window) {
         glfwTerminate();
         return 1;
@@ -878,4 +877,28 @@ int main(int argc, char** argv) {
 
     glfwTerminate();
     return 0;
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+        switch (key) {
+            case GLFW_KEY_LEFT:  // Replace glfw_KEY_LEFT
+                // Handle left key
+                break;
+            case GLFW_KEY_RIGHT: // Replace glfw_KEY_RIGHT
+                // Handle right key
+                break;
+            case GLFW_KEY_UP:    // Replace glfw_KEY_UP
+                // Handle up key
+                break;
+            case GLFW_KEY_DOWN:  // Replace glfw_KEY_DOWN
+                // Handle down key
+                break;
+            // Add other keys as needed
+        }
+    }
+}
+
+void initInput(GLFWwindow* window) {
+    glfwSetKeyCallback(window, key_callback);
 }
