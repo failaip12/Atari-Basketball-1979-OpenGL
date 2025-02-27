@@ -896,9 +896,9 @@ int main(int argc, char** argv) {
     initRendering();
 
     // Set up the viewport and projection matrix
-    //glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-    //glMatrixMode(GL_PROJECTION);
-    //glLoadIdentity();
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
     //glOrtho(0.0, WINDOW_WIDTH, WINDOW_HEIGHT, 0.0, -1.0, 1.0);
     //glMatrixMode(GL_MODELVIEW);
     //glLoadIdentity();
