@@ -532,7 +532,7 @@ void drawScene() {
         drawText("PRESS R TO RESTART", WINDOW_WIDTH / 2 - 50, WINDOW_HEIGHT / 2 -150);
     }
 
-    glutSwapBuffers();
+    glfwSwapBuffers(window);
 
 }
 
