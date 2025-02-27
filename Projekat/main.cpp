@@ -15,10 +15,10 @@
 #include <GL/gl.h>  // This provides the legacy OpenGL functions
 #else
 #ifdef _WIN32
-#include <GL/glfw.h>
+#include <GL/glut.h>
 #else
 #include <GL/gl.h>
-#include <GL/glfw.h>
+#include <GL/glut.h>
 #endif
 #endif
 
@@ -86,6 +86,8 @@ static time_t currentTime;
 static double elapsedSeconds;
 static int remainingMinutes;
 static int remainingSeconds;
+
+GLFWwindow* window;
 
 class Player {
 private:
@@ -396,11 +398,20 @@ void drawPlayer(GLuint playerTexture, float x, float y, bool flipped) {
 }
 
 void drawText(const std::string& text, float x, float y) {
+    glPushMatrix();
+    glTranslatef(x, y, 0);
+    glScalef(0.1, 0.1, 1);
+    
     for (char c : text) {
-        glRasterPos2f(x, y);
-        glfwBitmapCharacter(GLFW_BITMAP_TIMES_ROMAN_24, c);
-        x += glfwBitmapWidth(GLFW_BITMAP_TIMES_ROMAN_24, c);
+        glBegin(GL_LINES);
+        glVertex2f(0, 0);
+        glVertex2f(10, 0);
+        glVertex2f(0, 10);
+        glVertex2f(10, 10);
+        glEnd();
+        glTranslatef(12, 0, 0);
     }
+    glPopMatrix();
 }
 
 void drawScore() {
@@ -521,7 +532,7 @@ void drawScene() {
         drawText("PRESS R TO RESTART", WINDOW_WIDTH / 2 - 50, WINDOW_HEIGHT / 2 -150);
     }
 
-    glfwSwapBuffers();
+    glutSwapBuffers();
 
 }
 
@@ -537,8 +548,7 @@ void initRendering()
     glAlphaFunc(GL_GREATER, 0.1f);
 }
 
-void resizeWindow(int w, int h)
-{
+void resizeWindow(int w, int h) {
     double scale, center;
     double windowXmin, windowXmax, windowYmin, windowYmax;
 
@@ -548,8 +558,8 @@ void resizeWindow(int w, int h)
     h = (h == 0) ? 1 : h;
     if ((WINDOW_WIDTH / w) < (WINDOW_HEIGHT / h)) {
         scale = ((WINDOW_HEIGHT / h) / (WINDOW_WIDTH / w));
-        center = WINDOW_WIDTH/ 2;
-        windowXmin = center - (center* scale);
+        center = WINDOW_WIDTH / 2;
+        windowXmin = center - (center * scale);
         windowXmax = center + (WINDOW_WIDTH - center) * scale;
         windowYmin = 0.0;
         windowYmax = WINDOW_HEIGHT;
@@ -565,8 +575,8 @@ void resizeWindow(int w, int h)
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(windowXmin, windowXmax, windowYmin, windowYmax);
-
+    glOrtho(windowXmin, windowXmax, windowYmin, windowYmax, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
 }
 
 void handleJump(Player& player, float jumpDuration, float jumpHeight) {
@@ -585,9 +595,8 @@ void handleJump(Player& player, float jumpDuration, float jumpHeight) {
 }
 
 void handleInput() {
-    if (keyState[27]) {
-        glfwDestroyWindow(glfwGetWindow());
-        exit(0);
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
     if (endGame) {
         if (keyState['r'] || keyState['R']) {
@@ -758,7 +767,6 @@ void dribbleBall() {
 void handlePlayerBallCollision(float& ballX, float& ballY) {
     touchedP1 = checkPlayerBallCollision(player1.getPositionX(), player1.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius, player1.isFlipped());
     touchedP2 = checkPlayerBallCollision(player2.getPositionX(), player2.getPositionY(), ballX, ballY, playerWidth, playerHeight, ballRadius, player2.isFlipped());
-    //printf("P1: %d, P2: %d\n", touchedP1, touchedP2);
 
     if (!player1.getBallPossesion() && !player2.getBallPossesion() && touchedP1) {
         player1.setBallPossesion(true);
@@ -805,10 +813,8 @@ void handleShooting(float& ballX, float& ballY, float& ballSpeedX, float& ballSp
     }
 }
 
-void timer(int value) {
-    (void) value;
-    if(!endGame)
-    {
+void timer_callback(GLFWwindow* window) {
+    if(!endGame) {
         if (player1.getShootKeyHeld() && !shotFired) {
             player1.setShootStrength(player1.getShootStrength() + 0.035);
         }
@@ -822,7 +828,8 @@ void timer(int value) {
         handlePlayerBallCollision(ballX, ballY);
         screenCollision();
         checkIfScored();
-        if (!((player1.getBallPossesion() && player1.getShootKeyHeld()) || (player2.getBallPossesion() && player2.getShootKeyHeld()))) {
+        if (!((player1.getBallPossesion() && player1.getShootKeyHeld()) || 
+              (player2.getBallPossesion() && player2.getShootKeyHeld()))) {
             dribbleBall();
         }
 
@@ -830,9 +837,7 @@ void timer(int value) {
     }
     handleInput();
     calculateTimeRemaining();
-    glfwPostRedisplay();
-    glfwTimerFunc(16, timer, 0);
-}   
+}
 
 void main_loop() {
     // Move your main rendering logic here
@@ -846,7 +851,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Basketball Game", NULL, NULL);
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Basketball Game", NULL, NULL);
     if (!window) {
         glfwTerminate();
         return 1;
@@ -864,12 +869,12 @@ int main(int argc, char** argv) {
     startTime = time(NULL);
     initRendering();
 
-    // Set up the main loop
 #ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop(main_loop, 0, 1);
+    emscripten_set_main_loop_arg((em_arg_callback_func)timer_callback, window, 0, 1);
 #else
     while (!glfwWindowShouldClose(window)) {
-        main_loop();
+        timer_callback(window);
+        drawScene();
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -882,16 +887,16 @@ int main(int argc, char** argv) {
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS || action == GLFW_REPEAT) {
         switch (key) {
-            case GLFW_KEY_LEFT:  // Replace glfw_KEY_LEFT
+            case GLFW_KEY_LEFT:  // Replace GLUT_KEY_LEFT
                 // Handle left key
                 break;
-            case GLFW_KEY_RIGHT: // Replace glfw_KEY_RIGHT
+            case GLFW_KEY_RIGHT: // Replace GLUT_KEY_RIGHT
                 // Handle right key
                 break;
-            case GLFW_KEY_UP:    // Replace glfw_KEY_UP
+            case GLFW_KEY_UP:    // Replace GLUT_KEY_UP
                 // Handle up key
                 break;
-            case GLFW_KEY_DOWN:  // Replace glfw_KEY_DOWN
+            case GLFW_KEY_DOWN:  // Replace GLUT_KEY_DOWN
                 // Handle down key
                 break;
             // Add other keys as needed
