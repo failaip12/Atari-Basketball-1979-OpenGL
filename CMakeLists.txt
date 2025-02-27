@@ -12,6 +12,7 @@ if (EMSCRIPTEN)
         -sUSE_GLFW=3
         -sWASM=1
         -sALLOW_MEMORY_GROWTH=1
+        -sLEGACY_GL_EMULATION=1
         -sSTB_IMAGE=1
         --preload-file ${CMAKE_SOURCE_DIR}/pics@/pics
     )

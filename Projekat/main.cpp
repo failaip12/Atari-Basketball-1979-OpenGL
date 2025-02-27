@@ -5,12 +5,24 @@
 #include <ctime>
 #include <vector>
 #include <string>
-#include <GLES2/gl2.h>
-#include <GLFW/glfw3.h>
+
+// OpenGL includes
 #ifdef __EMSCRIPTEN__
+#include <GLES2/gl2.h>
 #include <emscripten.h>
 #include <emscripten/html5.h>
+#define GL_GLEXT_PROTOTYPES 1
+#include <GL/gl.h>  // This provides the legacy OpenGL functions
+#else
+#ifdef _WIN32
+#include <GL/glut.h>
+#else
+#include <GL/gl.h>
+#include <GL/glut.h>
 #endif
+#endif
+
+#include <GLFW/glfw3.h>
 #include "stb_image.h"
 
 const double WINDOW_WIDTH = 768.0;
