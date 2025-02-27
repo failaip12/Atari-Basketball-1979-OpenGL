@@ -518,15 +518,6 @@ void drawScene() {
         glClear(GL_COLOR_BUFFER_BIT);
         checkGLError("After clear");
 
-        // Try drawing a simple triangle first to test rendering
-        glColor3f(1.0, 0.0, 0.0);
-        glBegin(GL_TRIANGLES);
-        glVertex2f(100.0, 100.0);
-        glVertex2f(200.0, 100.0);
-        glVertex2f(150.0, 200.0);
-        glEnd();
-        checkGLError("After triangle");
-
         drawTime();
         checkGLError("After time");
         drawScore();
@@ -863,7 +854,6 @@ void timer_callback(GLFWwindow* window) {
 }
 
 void main_loop() {
-    printf("Main loop running\n"); // Debug print
     timer_callback(window);
     drawScene();
     glfwPollEvents();
@@ -906,12 +896,12 @@ int main(int argc, char** argv) {
     initRendering();
 
     // Set up the viewport and projection matrix
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0.0, WINDOW_WIDTH, WINDOW_HEIGHT, 0.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    //glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    //glMatrixMode(GL_PROJECTION);
+    //glLoadIdentity();
+    //glOrtho(0.0, WINDOW_WIDTH, WINDOW_HEIGHT, 0.0, -1.0, 1.0);
+    //glMatrixMode(GL_MODELVIEW);
+    //glLoadIdentity();
 
 #ifdef __EMSCRIPTEN__
     printf("Setting up Emscripten main loop\n");
