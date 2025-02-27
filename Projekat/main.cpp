@@ -207,6 +207,13 @@ const GLfloat colors[][3] = {
     {0.53, 0.39, 0.18}                   // HOOP_BACKBOARD
 };
 
+void checkGLError(const char* label) {
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR) {
+        printf("OpenGL error at %s: 0x%04x\n", label, error);
+    }
+}
+
 GLuint loadTexture(const char* filename) {
     GLuint textureID;
     glGenTextures(1, &textureID);
@@ -941,11 +948,4 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 void initInput(GLFWwindow* window) {
     glfwSetKeyCallback(window, key_callback);
-}
-
-void checkGLError(const char* label) {
-    GLenum error = glGetError();
-    if (error != GL_NO_ERROR) {
-        printf("OpenGL error at %s: 0x%04x\n", label, error);
-    }
 }
